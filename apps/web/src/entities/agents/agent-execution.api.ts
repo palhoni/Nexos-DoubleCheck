@@ -114,6 +114,14 @@ export interface AgentExecutionHistoryItem {
 
 export interface StructuredTestPlan {
   resumo: { usId: string; titulo: string; escopo: string; status: string; estrategia: string };
+  revisaoIndependente: {
+    osOriginalRevisada: boolean;
+    analiseAgent1Revisada: boolean;
+    conclusao: string;
+    decisaoNovosCasos: string;
+    justificativa: string;
+    divergencias: Array<{ id: string; tipo: string; descricao: string; impacto: string }>;
+  };
   cobertura: Array<{ categoria: string; requisitos: number; cobertos: number; percentual: number; avaliacao: string }>;
   rastreabilidade: Array<{ requisitoId: string; requisito: string; cenarioIds: string[]; cobertura: string }>;
   gaps: Array<{ id: string; categoria: string; severidade: string; descricao: string; requisitoRelacionado: string; assuncao: boolean }>;

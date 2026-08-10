@@ -14,6 +14,14 @@ const DENY_ALL_TOOLS: PermissionHandler = () => ({ kind: 'reject', feedback: 'Es
 
 export type TestPlan = {
   resumo: { usId: string; titulo: string; escopo: string; status: string; estrategia: string };
+  revisaoIndependente: {
+    osOriginalRevisada: boolean;
+    analiseAgent1Revisada: boolean;
+    conclusao: string;
+    decisaoNovosCasos: string;
+    justificativa: string;
+    divergencias: Array<{ id: string; tipo: string; descricao: string; impacto: string }>;
+  };
   cobertura: Array<{ categoria: string; requisitos: number; cobertos: number; percentual: number; avaliacao: string }>;
   rastreabilidade: Array<{ requisitoId: string; requisito: string; cenarioIds: string[]; cobertura: string }>;
   gaps: Array<{ id: string; categoria: string; severidade: string; descricao: string; requisitoRelacionado: string; assuncao: boolean }>;
@@ -111,7 +119,7 @@ function extractCompletedObjects<T>(raw: string, field: string): T[] {
   return items;
 }
 
-export function parseAndValidateTestPlan(raw: string, title: string): { plan: TestPlan; jsonValid: boolean; contractValid: boolean; validationErrors: string[] } {
+export function parseAndValidateTestPlan(raw: string, title: string, requireIndependentReview = false): { plan: TestPlan; jsonValid: boolean; contractValid: boolean; validationErrors: string[] } {
   const clean = raw.replace(/^\s*```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
   let value: Partial<TestPlan> = {};
   const validationErrors: string[] = [];
@@ -134,6 +142,14 @@ export function parseAndValidateTestPlan(raw: string, title: string): { plan: Te
   const cobertura = Array.isArray(value.cobertura) ? value.cobertura : [];
   const plan: TestPlan = {
     resumo: { usId: value.resumo?.usId || title, titulo: value.resumo?.titulo || title, escopo: value.resumo?.escopo || 'Não classificado', status: value.resumo?.status || 'Requer revisão', estrategia: value.resumo?.estrategia || 'Consulte o relatório técnico.' },
+    revisaoIndependente: {
+      osOriginalRevisada: value.revisaoIndependente?.osOriginalRevisada === true,
+      analiseAgent1Revisada: value.revisaoIndependente?.analiseAgent1Revisada === true,
+      conclusao: value.revisaoIndependente?.conclusao || 'Não disponível nesta versão.',
+      decisaoNovosCasos: value.revisaoIndependente?.decisaoNovosCasos || 'Não registrado',
+      justificativa: value.revisaoIndependente?.justificativa || 'Este plano foi gerado antes da revisão independente da OS original.',
+      divergencias: Array.isArray(value.revisaoIndependente?.divergencias) ? value.revisaoIndependente.divergencias : [],
+    },
     cobertura, rastreabilidade: Array.isArray(value.rastreabilidade) ? value.rastreabilidade : [], gaps: Array.isArray(value.gaps) ? value.gaps : [],
     casosRecomendados: Array.isArray(value.casosRecomendados) ? value.casosRecomendados : [], bloqueadores: Array.isArray(value.bloqueadores) ? value.bloqueadores : [],
     checklist: { bloqueadores: Array.isArray(value.checklist?.bloqueadores) ? value.checklist.bloqueadores : [], ordemImplementacao: Array.isArray(value.checklist?.ordemImplementacao) ? value.checklist.ordemImplementacao : [] },
@@ -148,6 +164,7 @@ export function parseAndValidateTestPlan(raw: string, title: string): { plan: Te
     ];
     for (const [field, fieldValue] of requiredArrays) if (!Array.isArray(fieldValue)) validationErrors.push(`Campo obrigatório ausente ou inválido: ${field}.`);
     if (!value.resumo || !value.checklist || !value.totais) validationErrors.push('Blocos obrigatórios resumo, checklist e totais devem estar presentes.');
+    if (requireIndependentReview && (!value.revisaoIndependente || value.revisaoIndependente.osOriginalRevisada !== true || value.revisaoIndependente.analiseAgent1Revisada !== true)) validationErrors.push('A revisão independente da OS original e da análise do Agent 1 não foi comprovada.');
     if (plan.cobertura.length !== 6) validationErrors.push(`Cobertura incompleta: recebidas ${plan.cobertura.length} de 6 categorias.`);
     if (plan.gaps.length > 0 && plan.casosRecomendados.length === 0) validationErrors.push('Foram recebidos gaps sem casos recomendados.');
     const totals: Array<[string, number, number]> = [
@@ -295,7 +312,7 @@ export class TestDesignerService {
   }
 
   private makeResult(job: PlanJob, source: Awaited<ReturnType<TestDesignerService['getSource']>>, raw: string, parcial = false, reason?: string): PlanResult {
-    const parsed = parseAndValidateTestPlan(raw, job.titulo);
+    const parsed = parseAndValidateTestPlan(raw, job.titulo, true);
     const monitoring: TestPlanMonitoring = {
       ...job.monitoring, finalCharacters: raw.length, jsonValid: parsed.jsonValid, contractValid: parsed.contractValid,
       validationErrors: [...job.monitoring.validationErrors, ...parsed.validationErrors],
@@ -306,7 +323,56 @@ export class TestDesignerService {
   }
 
   private executionPrompt(source: Awaited<ReturnType<TestDesignerService['getSource']>>, actorEmail: string) {
-    return `Execute o desenho de testes em PT-BR a partir da análise do Agent 1 fornecida abaixo. A pré-condição P1 está satisfeita pelo conteúdo do banco.\n\nRESTRIÇÕES:\n- Não use ferramentas, não leia nem grave arquivos e não gere código ou scaffold nesta versão.\n- Recalcule a cobertura de forma independente nas seis categorias obrigatórias.\n- Escreva todos os textos em português do Brasil.\n- Retorne SOMENTE JSON válido e completo.\n- Todo gap deve ter ao menos um caso recomendado e rastreável.\n- Cenários de frontend devem ser planejados, mas marcados em frontendForaEscopo para futura automação separada.\n\nCONTRATO JSON:\n${JSON.stringify({ resumo: { usId: 'string', titulo: 'string', escopo: 'Backend | Frontend | Misto', status: 'Pronto | Requer refinamento', estrategia: 'string' }, cobertura: [{ categoria: 'Happy Path | Casos de borda | Tratamento de erros | Segurança | Performance | Variações de UX', requisitos: 0, cobertos: 0, percentual: 0, avaliacao: 'string' }], rastreabilidade: [{ requisitoId: 'AC01', requisito: 'string', cenarioIds: ['TC-B001'], cobertura: 'Coberto | Gap' }], gaps: [{ id: 'GAP-01', categoria: 'string', severidade: 'Crítica | Alta | Média | Baixa', descricao: 'string', requisitoRelacionado: 'string', assuncao: false }], casosRecomendados: [{ id: 'CTR-01', gapId: 'GAP-01', nome: 'string', categoria: 'string', escopo: 'Backend | Frontend', precondicoes: ['string'], passos: ['string'], resultadoEsperado: 'string', automacao: 'Automatizável | Manual | Ambos', prioridade: 'Alta | Média | Baixa' }], bloqueadores: [{ id: 'BLQ-01', descricao: 'string', afeta: ['CTR-01'] }], checklist: { bloqueadores: ['string'], ordemImplementacao: ['string'] }, frontendForaEscopo: [{ cenarioId: 'string', titulo: 'string', motivo: 'string' }], totais: { requisitos: 0, cobertos: 0, gaps: 0, casosRecomendados: 0, bloqueadores: 0, frontend: 0 } }, null, 2)}\n\nPROJETO: ${source.projeto.nome} (${source.projeto.codigo})\nSOLICITANTE: ${actorEmail}\nANÁLISE DO AGENT 1:\n${JSON.stringify(source.result)}`;
+    const sourceResult = source.result as { analise?: unknown; parcial?: boolean; motivoInterrupcao?: string };
+    const contract = {
+      resumo: { usId: 'string', titulo: 'string', escopo: 'Backend | Frontend | Misto', status: 'Pronto | Requer refinamento', estrategia: 'string' },
+      revisaoIndependente: {
+        osOriginalRevisada: true, analiseAgent1Revisada: true,
+        conclusao: 'Análise suficiente | Análise parcialmente suficiente | Análise insuficiente',
+        decisaoNovosCasos: 'Gerar novos casos | Não gerar novos casos', justificativa: 'string',
+        divergencias: [{ id: 'REV-01', tipo: 'Omissão | Divergência | Ambiguidade | Premissa sem evidência', descricao: 'string', impacto: 'string' }],
+      },
+      cobertura: [{ categoria: 'Happy Path | Casos de borda | Tratamento de erros | Segurança | Performance | Variações de UX', requisitos: 0, cobertos: 0, percentual: 0, avaliacao: 'string' }],
+      rastreabilidade: [{ requisitoId: 'AC01', requisito: 'string', cenarioIds: ['TC-B001'], cobertura: 'Coberto | Gap' }],
+      gaps: [{ id: 'GAP-01', categoria: 'string', severidade: 'Crítica | Alta | Média | Baixa', descricao: 'string', requisitoRelacionado: 'string', assuncao: false }],
+      casosRecomendados: [{ id: 'CTR-01', gapId: 'GAP-01', nome: 'string', categoria: 'string', escopo: 'Backend | Frontend', precondicoes: ['string'], passos: ['string'], resultadoEsperado: 'string', automacao: 'Automatizável | Manual | Ambos', prioridade: 'Alta | Média | Baixa' }],
+      bloqueadores: [{ id: 'BLQ-01', descricao: 'string', afeta: ['CTR-01'] }], checklist: { bloqueadores: ['string'], ordemImplementacao: ['string'] },
+      frontendForaEscopo: [{ cenarioId: 'string', titulo: 'string', motivo: 'string' }],
+      totais: { requisitos: 0, cobertos: 0, gaps: 0, casosRecomendados: 0, bloqueadores: 0, frontend: 0 },
+    };
+    return `Execute uma revisão independente de QA e, somente depois, desenhe o plano de testes em PT-BR. A pré-condição P1 está satisfeita pelo conteúdo do banco.
+
+ORDEM OBRIGATÓRIA:
+1. Leia a OS/US ORIGINAL integralmente e extraia seus requisitos sem usar a análise do Agent 1 como verdade.
+2. Leia a ANÁLISE ESTRUTURADA DO AGENT 1 e compare-a com a OS/US original.
+3. Identifique omissões, divergências, ambiguidades e premissas sem evidência em revisaoIndependente.
+4. Reavalie os cenários TC-* existentes contra as duas fontes.
+5. Decida explicitamente se há gaps reais. Gere casos CTR-* somente quando um gap real exigir cobertura adicional; se os casos existentes forem suficientes, use arrays vazios e justifique "Não gerar novos casos".
+
+RESTRIÇÕES:
+- Não use ferramentas, não leia nem grave arquivos e não gere código ou scaffold nesta versão.
+- Recalcule a cobertura de forma independente nas seis categorias obrigatórias.
+- Não invente requisitos genéricos apenas para preencher categorias; diferencie requisito explícito, inferência e ausência de evidência.
+- Escreva todos os textos em português do Brasil.
+- Retorne SOMENTE JSON válido e completo, na ordem do contrato.
+- Todo gap listado deve ter ao menos um caso recomendado e rastreável.
+- Cenários de frontend devem ser planejados, mas marcados em frontendForaEscopo para futura automação separada.
+- Seja objetivo e priorize fechar o JSON antes de atingir o limite de saída.
+
+CONTRATO JSON:
+${JSON.stringify(contract, null, 2)}
+
+PROJETO: ${source.projeto.nome} (${source.projeto.codigo})
+SOLICITANTE: ${actorEmail}
+
+OS/US ORIGINAL — FONTE PRIMÁRIA:
+${source.requisito}
+
+ANÁLISE ESTRUTURADA DO AGENT 1 — FONTE SECUNDÁRIA A SER REVISADA:
+${JSON.stringify(sourceResult.analise ?? source.result)}
+
+ESTADO DA ANÁLISE DO AGENT 1:
+${JSON.stringify({ parcial: sourceResult.parcial === true, motivoInterrupcao: sourceResult.motivoInterrupcao ?? null })}`;
   }
 
   private loadPrompt() {

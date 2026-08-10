@@ -1,8 +1,9 @@
-import { parseAndValidateTestPlan, type TestPlan } from './test-designer.service';
+import { parseAndValidateTestPlan, TestDesignerService, type TestPlan } from './test-designer.service';
 
 function validPlan(): TestPlan {
   return {
     resumo: { usId: 'US-1', titulo: 'Plano', escopo: 'Backend', status: 'Pronto', estrategia: 'Cobertura completa.' },
+    revisaoIndependente: { osOriginalRevisada: true, analiseAgent1Revisada: true, conclusao: 'Análise suficiente', decisaoNovosCasos: 'Gerar novos casos', justificativa: 'Foi encontrado um gap real.', divergencias: [] },
     cobertura: ['Happy Path', 'Casos de borda', 'Tratamento de erros', 'Segurança', 'Performance', 'Variações de UX'].map((categoria) => ({ categoria, requisitos: 1, cobertos: 1, percentual: 100, avaliacao: 'Coberto' })),
     rastreabilidade: [{ requisitoId: 'AC01', requisito: 'Persistir', cenarioIds: ['CTR-01'], cobertura: 'Coberto' }],
     gaps: [{ id: 'GAP-01', categoria: 'Erro', severidade: 'Alta', descricao: 'Falha externa', requisitoRelacionado: 'AC01', assuncao: false }],
@@ -14,7 +15,7 @@ function validPlan(): TestPlan {
 
 describe('parseAndValidateTestPlan', () => {
   it('aceita o contrato JSON completo, inclusive dentro de code fence', () => {
-    const result = parseAndValidateTestPlan(`\`\`\`json\n${JSON.stringify(validPlan())}\n\`\`\``, 'US-1');
+    const result = parseAndValidateTestPlan(`\`\`\`json\n${JSON.stringify(validPlan())}\n\`\`\``, 'US-1', true);
     expect(result.jsonValid).toBe(true);
     expect(result.contractValid).toBe(true);
     expect(result.plan.casosRecomendados).toHaveLength(1);
@@ -42,5 +43,27 @@ describe('parseAndValidateTestPlan', () => {
     expect(result.jsonValid).toBe(true);
     expect(result.contractValid).toBe(false);
     expect(result.validationErrors).toContain('Total de casos recomendados divergente: declarado 14, recebido 1.');
+  });
+
+  it('exige revisão comprovada das duas fontes nos novos planos', () => {
+    const plan = validPlan(); plan.revisaoIndependente.osOriginalRevisada = false;
+    const result = parseAndValidateTestPlan(JSON.stringify(plan), 'US-1', true);
+    expect(result.contractValid).toBe(false);
+    expect(result.validationErrors).toContain('A revisão independente da OS original e da análise do Agent 1 não foi comprovada.');
+  });
+});
+
+describe('prompt do Desenhista de Testes', () => {
+  it('envia a OS original e a análise estruturada como fontes separadas, sem duplicar o relatório bruto', () => {
+    const service = new TestDesignerService({} as never);
+    const prompt = (service as unknown as { executionPrompt: (source: unknown, actorEmail: string) => string }).executionPrompt({
+      requisito: 'CONTEÚDO ORIGINAL DA OS',
+      projeto: { nome: 'Projeto', codigo: 'PRJ' },
+      result: { analise: { marcador: 'ANÁLISE ESTRUTURADA' }, resultado: 'RELATÓRIO BRUTO DUPLICADO' },
+    }, 'qa@example.com');
+    expect(prompt).toContain('OS/US ORIGINAL — FONTE PRIMÁRIA:\nCONTEÚDO ORIGINAL DA OS');
+    expect(prompt).toContain('ANÁLISE ESTRUTURADA');
+    expect(prompt).not.toContain('RELATÓRIO BRUTO DUPLICADO');
+    expect(prompt).toContain('Decida explicitamente se há gaps reais.');
   });
 });
