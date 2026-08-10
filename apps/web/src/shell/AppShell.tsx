@@ -13,6 +13,8 @@ const ROUTE_LABELS: Array<[string, string]> = [
   ['/buscar', 'Busca Global'],
   ['/atividade', 'Atividade'],
   ['/agents/analises', 'Agents / Análises de US'],
+  ['/agents/desenhista-testes', 'Agents / Desenhista de Testes'],
+  ['/agents/planos-teste', 'Agents / Planos de Teste'],
   ['/agents/agent1-analisador-us', 'Agents / Analisador de US'],
   ['/agents', 'Orquestração de Agents'],
   ['/minha-area', 'Minha Área'],

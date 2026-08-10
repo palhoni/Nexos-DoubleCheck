@@ -4,11 +4,13 @@ import { CurrentUser, type AuthenticatedUser } from '../auth/decorators/current-
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AgentsService } from './agents.service';
 import { RunUsAnalyserDto } from './dto/run-us-analyser.dto';
+import { RunTestDesignerDto } from './dto/run-test-designer.dto';
+import { TestDesignerService } from './test-designer.service';
 
 @UseGuards(JwtAuthGuard)
 @Controller('agents')
 export class AgentsController {
-  constructor(private readonly agentsService: AgentsService) {}
+  constructor(private readonly agentsService: AgentsService, private readonly testDesignerService: TestDesignerService) {}
 
   @Post('requisitos/extrair')
   @UseInterceptors(FileInterceptor('arquivo', { limits: { fileSize: 10_000_000 } }))
@@ -24,6 +26,21 @@ export class AgentsController {
   @Post('analisador-us/iniciar')
   startUsAnalyser(@Body() dto: RunUsAnalyserDto, @CurrentUser() user: AuthenticatedUser) {
     return this.agentsService.startUsAnalyser(dto, user);
+  }
+
+  @Post('desenhista-testes/iniciar')
+  startTestDesigner(@Body() dto: RunTestDesignerDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.testDesignerService.start(dto, user);
+  }
+
+  @Get('desenhista-testes/execucoes')
+  listTestDesignerExecutions(@CurrentUser() user: AuthenticatedUser, @Query('analysisExecutionId') analysisExecutionId?: string) {
+    return this.testDesignerService.list(user.userId, analysisExecutionId);
+  }
+
+  @Get('desenhista-testes/execucoes/:id')
+  getTestDesignerExecution(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.testDesignerService.get(id, user.userId);
   }
 
   @Get('execucoes')

@@ -112,6 +112,62 @@ export interface AgentExecutionHistoryItem {
   actorUser: { id: string; nome: string; email: string };
 }
 
+export interface StructuredTestPlan {
+  resumo: { usId: string; titulo: string; escopo: string; status: string; estrategia: string };
+  cobertura: Array<{ categoria: string; requisitos: number; cobertos: number; percentual: number; avaliacao: string }>;
+  rastreabilidade: Array<{ requisitoId: string; requisito: string; cenarioIds: string[]; cobertura: string }>;
+  gaps: Array<{ id: string; categoria: string; severidade: string; descricao: string; requisitoRelacionado: string; assuncao: boolean }>;
+  casosRecomendados: Array<{ id: string; gapId: string; nome: string; categoria: string; escopo: string; precondicoes: string[]; passos: string[]; resultadoEsperado: string; automacao: string; prioridade: string }>;
+  bloqueadores: Array<{ id: string; descricao: string; afeta: string[] }>;
+  checklist: { bloqueadores: string[]; ordemImplementacao: string[] };
+  frontendForaEscopo: Array<{ cenarioId: string; titulo: string; motivo: string }>;
+  totais: { requisitos: number; cobertos: number; gaps: number; casosRecomendados: number; bloqueadores: number; frontend: number };
+}
+
+export interface TestDesignerResult {
+  agent: 'agent2-desenhista-testes';
+  provider: 'GitHub Copilot';
+  projeto: { id: string; nome: string; codigo: string };
+  sourceExecutionId: string;
+  titulo: string;
+  resultado: string;
+  plano: StructuredTestPlan;
+  duracaoMs: number;
+  executadoEm: string;
+  parcial?: boolean;
+  motivoInterrupcao?: string;
+}
+
+export interface TestDesignerJob {
+  id: string;
+  status: AgentExecutionStatus;
+  phase: string;
+  progress: number;
+  message: string;
+  createdAt: string;
+  updatedAt: string;
+  live: { characters: number; gaps: number; cases: number; blockers: number };
+  result?: TestDesignerResult;
+  error?: string;
+}
+
+export interface TestDesignerHistoryItem {
+  id: string;
+  titulo: string | null;
+  sourceExecutionId: string;
+  status: AgentExecutionStatus;
+  phase: string;
+  progress: number;
+  message: string;
+  error: string | null;
+  hasResult: boolean;
+  parcial: boolean;
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+  projeto: { id: string; nome: string; codigo: string };
+}
+
 export async function runUsAnalyser(input: RunUsAnalyserInput) {
   const { data } = await httpClient.post<UsAnalyserResult>('/agents/analisador-us/executar', input);
   return data;
@@ -138,5 +194,20 @@ export async function extractRequirementFile(file: File) {
   const body = new FormData();
   body.append('arquivo', file);
   const { data } = await httpClient.post<ExtractedRequirementFile>('/agents/requisitos/extrair', body);
+  return data;
+}
+
+export async function startTestDesigner(analysisExecutionId: string) {
+  const { data } = await httpClient.post<TestDesignerJob>('/agents/desenhista-testes/iniciar', { analysisExecutionId });
+  return data;
+}
+
+export async function getTestDesignerExecution(id: string) {
+  const { data } = await httpClient.get<TestDesignerJob>(`/agents/desenhista-testes/execucoes/${id}`);
+  return data;
+}
+
+export async function listTestDesignerExecutions(analysisExecutionId?: string) {
+  const { data } = await httpClient.get<TestDesignerHistoryItem[]>('/agents/desenhista-testes/execucoes', { params: analysisExecutionId ? { analysisExecutionId } : undefined });
   return data;
 }

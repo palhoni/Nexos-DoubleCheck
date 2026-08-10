@@ -38,6 +38,9 @@ import { AgentsOrchestrationPage } from '@/pages/agents/AgentsOrchestrationPage'
 import { AgentUsAnalyserPage } from '@/pages/agents/AgentUsAnalyserPage';
 import { UsAnalysesPage } from '@/pages/agents/UsAnalysesPage';
 import { UsAnalysisDetailPage } from '@/pages/agents/UsAnalysisDetailPage';
+import { TestDesignerPage } from '@/pages/agents/TestDesignerPage';
+import { TestPlanDetailPage } from '@/pages/agents/TestPlanDetailPage';
+import { TestPlansPage } from '@/pages/agents/TestPlansPage';
 
 export const router = createBrowserRouter([
   {
@@ -61,6 +64,9 @@ export const router = createBrowserRouter([
           { path: '/agents/agent1-analisador-us', element: <AgentUsAnalyserPage /> },
           { path: '/agents/analises', element: <UsAnalysesPage /> },
           { path: '/agents/analises/:executionId', element: <UsAnalysisDetailPage /> },
+          { path: '/agents/desenhista-testes/:analysisExecutionId', element: <TestDesignerPage /> },
+          { path: '/agents/planos-teste', element: <TestPlansPage /> },
+          { path: '/agents/planos-teste/:planExecutionId', element: <TestPlanDetailPage /> },
           { path: '/minha-area', element: <MinhaAreaPage /> },
           { path: '/projetos', element: <ProjetosListPage /> },
           { path: '/projetos/novo', element: <ProjetoFormPage mode="create" /> },

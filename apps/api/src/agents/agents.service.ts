@@ -205,7 +205,7 @@ export class AgentsService implements OnModuleInit {
 
   async listExecutions(actorUserId: string, projetoId?: string) {
     const rows = await this.prisma.agentExecution.findMany({
-      where: { actorUserId, ...(projetoId ? { projetoId } : {}) },
+      where: { actorUserId, agent: AGENT_NAME, ...(projetoId ? { projetoId } : {}) },
       orderBy: { createdAt: 'desc' },
       take: 30,
       select: {

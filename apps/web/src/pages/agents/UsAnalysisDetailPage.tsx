@@ -40,7 +40,7 @@ export function UsAnalysisDetailPage() {
       <header className="us-analysis-detail-header">
         <button type="button" onClick={() => navigate('/agents/analises')}>← Todas as análises</button>
         <div className="us-analysis-detail-title"><span><Icon name="clipboardCheck" size={24} /></span><div><small>{result.parcial ? 'RESULTADO PARCIAL PRESERVADO' : 'REQUISITO ANALISADO'}</small><h1>{analysis.requisito.identificador}</h1><p>{analysis.requisito.titulo || result.titulo} · {result.projeto.nome}</p></div></div>
-        <div className="us-analysis-detail-actions"><Button variant="secondary" onClick={() => navigator.clipboard.writeText(result.resultado)}>Copiar relatório</Button><Button variant="primary" onClick={() => navigate(`/agents/agent1-analisador-us?projeto=${result.projeto.id}`)}>Nova análise</Button></div>
+        <div className="us-analysis-detail-actions"><Button variant="secondary" onClick={() => navigator.clipboard.writeText(result.resultado)}>Copiar relatório</Button><Button variant="secondary" onClick={() => navigate(`/agents/agent1-analisador-us?projeto=${result.projeto.id}`)}>Nova análise</Button><Button variant="primary" onClick={() => navigate(`/agents/desenhista-testes/${executionId}`)}>Enviar ao Desenhista de Testes</Button></div>
       </header>
       {result.parcial && <div className="agent-partial-warning"><Icon name="info" size={17} /><span><strong>Execução interrompida — conteúdo preservado</strong>{result.motivoInterrupcao || 'Consulte as seções disponíveis abaixo.'}</span></div>}
       <section className="agent-result-card us-analysis-result">

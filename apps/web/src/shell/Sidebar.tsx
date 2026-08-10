@@ -281,6 +281,7 @@ export function Sidebar({ onLogout }: SidebarProps) {
             <>
               {agentWorkspaceButton({ path: '/agents', label: 'Orquestração', icon: 'network' })}
               {agentWorkspaceButton({ path: '/agents/analises', label: 'Análises de US', icon: 'clipboardCheck' })}
+              {agentWorkspaceButton({ path: '/agents/planos-teste', label: 'Planos de Teste', icon: 'chart' })}
               {!collapsed && <div className="renault-sidebar-section-label">Ciclo de trabalho</div>}
               {AGENT_WORKSPACE_NAV.map(agentWorkspaceButton)}
               {!collapsed && <div className="renault-sidebar-section-label">Projetos recentes</div>}
