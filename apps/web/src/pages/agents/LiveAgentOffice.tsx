@@ -239,7 +239,7 @@ export function LiveAgentOffice({ projectId, projectName }: { projectId: string;
           {collaborationActive && <div className="live-office-collaboration" aria-label="Agent 1 e Agent 2 alinhando o requisito"><i /><span>ALINHAMENTO DO REQUISITO</span><i /></div>}
           {stations.map((station) => <Desk key={station.agent.id} station={station} onOpen={() => openStation(station)} />)}
           {refinementMeetingActive && analyzerExecution && <RefinementMeeting execution={analyzerExecution} now={now} />}
-          <div className="live-office-map-legend"><span><i className="is-working" /> trabalhando</span><span><i className="is-collaborating" /> em alinhamento</span><span><i className="is-idle" /> disponível</span><span><i className="is-attention" /> atenção</span><span><i className="is-offline" /> não conectado</span></div>
+          <div className="live-office-map-legend"><span><i className="is-working" /> trabalhando</span><span><i className="is-supporting" /> apoiando QA</span><span><i className="is-collaborating" /> em alinhamento</span><span><i className="is-idle" /> disponível</span><span><i className="is-attention" /> atenção</span><span><i className="is-offline" /> não conectado</span></div>
         </div>
         <aside className="live-office-feed">
           <header><span><i /> ATIVIDADE REAL</span><time>{new Date(now).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</time></header>
