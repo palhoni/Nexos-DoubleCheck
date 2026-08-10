@@ -1,0 +1,32 @@
+# Dependencies and generated output
+node_modules/
+dist/
+coverage/
+generated/
+*.tsbuildinfo
+
+# Local environment and credentials
+.env
+.env.*
+!.env.example
+
+# Runtime and debug files
+*.log
+logs/
+*.pid
+
+# Local archives and imported package residue
+*.zip
+*.rar
+__MACOSX/
+
+# IDE and operating-system files
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
+*.sw?
+
+# Local repository-metadata backups
+.git-backups/

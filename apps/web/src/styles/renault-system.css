@@ -1,0 +1,470 @@
+/* ============================================================================
+   NEXO / RENAULT — application-wide visual layer
+   Applies the approved Renault/Nexo language to every authenticated screen.
+   HomePage keeps its own renault-dashboard composition; this file normalizes the
+   shared shell and the remaining pages/components.
+   ============================================================================ */
+
+:root {
+  --nexo-yellow: #ffcc00;
+  --nexo-yellow-hover: #f5c400;
+  --nexo-yellow-soft: #fff8d9;
+  --nexo-yellow-border: #f0ca35;
+  --nexo-black: #050505;
+  --nexo-ink: #151515;
+  --nexo-muted: #666;
+  --nexo-page: #f4f4f4;
+  --nexo-card-border: #dedede;
+  --nexo-divider: #e7e7e7;
+}
+
+/* ------------------------------ Shell ------------------------------------- */
+.renault-app-shell,
+.renault-app-shell > main {
+  background: var(--nexo-page) !important;
+}
+
+.renault-app-shell .dbc-sidebar {
+  width: 235px !important;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow: hidden;
+  color: #efefef !important;
+  background: var(--nexo-black) !important;
+  border-right: 1px solid #1d1d1d !important;
+  transition: width .24s cubic-bezier(.215,.61,.355,1);
+}
+
+.renault-app-shell .dbc-sidebar.is-collapsed { width: 72px !important; }
+.renault-sidebar-scroll { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; display: flex; flex-direction: column; }
+.renault-sidebar-scroll::-webkit-scrollbar { display: none; }
+.renault-sidebar-head { min-height: 76px; padding: 17px 14px 11px 18px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.renault-sidebar-logo { min-width: 0; display: flex; align-items: center; gap: 10px; color: #fff; }
+.renault-sidebar-brand { min-width: 0; display: flex; flex-direction: column; line-height: 1; }
+.renault-sidebar-brand strong { font-size: 20px; font-weight: 750; letter-spacing: -.035em; }
+.renault-sidebar-brand small { margin-top: 5px; color: #909090; font-size: 6.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.renault-sidebar-collapsed-mark { display: grid; place-items: center; padding: 2px 0 12px; color: #fff; }
+
+.renault-app-shell .dbc-sidebar-collapse-btn {
+  width: 29px !important; height: 29px !important; flex: 0 0 29px;
+  display: grid !important; place-items: center;
+  padding: 0 !important; border: 1px solid #2b2b2b !important; border-radius: 6px !important;
+  color: #cfcfcf !important; background: #151515 !important; cursor: pointer;
+}
+.renault-app-shell .dbc-sidebar-collapse-btn:hover { color: var(--nexo-yellow) !important; border-color: #4b4b4b !important; }
+
+.renault-sidebar-nav { padding: 4px 10px 0; display: flex; flex-direction: column; gap: 3px; }
+.renault-sidebar-section-label { margin: 15px 12px 5px; color: #797979 !important; font-size: 9.5px; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; }
+.renault-nav-item {
+  position: relative;
+  width: 100%; min-height: 39px; padding: 8px 11px !important;
+  display: flex !important; align-items: center !important; justify-content: flex-start !important; gap: 11px !important;
+  border: 0 !important; border-radius: 7px !important;
+  color: #d7d7d7 !important; background: transparent !important;
+  font: 450 13px/1.2 var(--font-sans) !important; text-align: left; cursor: pointer;
+  transition: color .15s ease, background .15s ease;
+}
+.renault-nav-item > span { min-width: 0; flex: 1; }
+.renault-nav-item:hover { color: #fff !important; background: #151515 !important; }
+.renault-nav-item.dbc-nav-item-active { color: var(--nexo-yellow) !important; background: #1c1c1c !important; font-weight: 650 !important; }
+.renault-nav-item.dbc-nav-item-active::before { content: ''; position: absolute; left: -10px; top: 5px; bottom: 5px; width: 3px; border-radius: 0 3px 3px 0; background: var(--nexo-yellow); }
+.renault-nav-item--nested { min-height: 34px; padding: 7px 11px 7px 17px !important; color: #bdbdbd !important; font-size: 12px !important; }
+.renault-nav-item--nested.dbc-nav-item-active::before { left: -10px; }
+.renault-nav-group { display: flex; flex-direction: column; }
+.renault-nav-group__trigger { font-weight: 600 !important; }
+.renault-nav-group.is-active > .renault-nav-group__trigger { color: #fff !important; }
+.renault-nav-group__children { margin: 2px 0 2px 15px; padding-left: 7px; border-left: 1px solid #2a2a2a; display: flex; flex-direction: column; gap: 1px; }
+.renault-project-nav { display: flex; flex-direction: column; min-width: 0; }
+.renault-project-nav > .renault-nav-item > svg:last-child { flex: 0 0 auto; }
+.renault-project-nav__children { margin: 2px 0 4px 17px; padding-left: 7px; border-left: 1px solid #303030; display: flex; flex-direction: column; gap: 1px; }
+.renault-nav-item--project { min-height: 31px; padding: 6px 8px !important; color: #aaa !important; font-size: 11.5px !important; }
+.renault-nav-item--project.dbc-nav-item-active { color: var(--nexo-yellow) !important; background: #181818 !important; }
+.renault-nav-item--project.dbc-nav-item-active::before { left: -8px !important; top: 4px !important; bottom: 4px !important; }
+.project-sidebar-target { scroll-margin-top: 18px; outline: none; }
+.project-sidebar-target:focus-visible { border-radius: 10px; box-shadow: 0 0 0 3px rgba(255,204,0,.3); }
+.renault-sidebar-spacer { flex: 1 0 26px; }
+
+.renault-governance-card { margin: 18px 12px 10px; padding: 11px 12px; display: grid; grid-template-columns: 28px 1fr; align-items: center; gap: 9px; border: 1px solid #343434; border-radius: 8px; background: #0d0d0d; }
+.renault-governance-card__icon { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 7px; color: #f1f1f1; background: #171717; }
+.renault-governance-card > span:last-child { min-width: 0; display: flex; flex-direction: column; }
+.renault-governance-card strong { color: #f2f2f2; font-size: 9.5px; font-weight: 650; }
+.renault-governance-card small { margin-top: 4px; color: #a6a6a6; font-size: 8px; }
+.renault-governance-card small i { display: inline-block; width: 6px; height: 6px; margin-left: 5px; border-radius: 50%; background: #31ad4c; box-shadow: 0 0 0 2px rgba(49,173,76,.12); }
+
+.renault-sidebar-preferences { padding: 0 10px 8px; }
+.renault-sidebar-toggle { width: 34px; height: 18px; position: relative; flex: 0 0 auto; padding: 0; border: 0; border-radius: 99px; background: #464646; cursor: pointer; }
+.renault-sidebar-toggle span { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: left .16s ease, background .16s ease; }
+.renault-sidebar-toggle.is-on { background: var(--nexo-yellow); }
+.renault-sidebar-toggle.is-on span { left: 18px; background: #111; }
+
+.renault-app-shell .dbc-sidebar-footer { flex: 0 0 auto; padding: 9px 10px 12px !important; border-top: 1px solid #202020 !important; background: #050505 !important; box-shadow: 0 -8px 18px rgba(0,0,0,.32) !important; }
+.renault-app-shell .dbc-logout-btn { width: 100%; min-height: 36px; display: flex; align-items: center; gap: 10px; justify-content: flex-start; padding: 7px 11px; border: 0; border-radius: 7px; color: #db7777; background: transparent; cursor: pointer; font: 500 12px var(--font-sans); }
+.renault-app-shell .dbc-logout-btn:hover { color: #ff9b9b; background: #171111; }
+.renault-app-shell .dbc-sidebar.is-collapsed .renault-nav-item,
+.renault-app-shell .dbc-sidebar.is-collapsed .dbc-logout-btn { justify-content: center !important; padding-inline: 0 !important; }
+.renault-app-shell .dbc-sidebar.is-collapsed .renault-nav-item.dbc-nav-item-active::before { left: -10px; }
+
+.renault-logout-ack { display: flex; align-items: flex-start; gap: 10px; margin-top: 16px; padding: 11px 13px; border: 1px solid #d9d9d9; border-radius: 8px; background: transparent; cursor: pointer; user-select: none; }
+.renault-logout-ack.is-checked { border-color: #d2a700; background: #fff9e0; }
+.renault-logout-ack__check { width: 18px; height: 18px; flex: 0 0 18px; margin-top: 1px; display: grid; place-items: center; border: 1.5px solid #bfbfbf; border-radius: 5px; background: transparent; }
+.renault-logout-ack.is-checked .renault-logout-ack__check { border-color: var(--nexo-yellow); background: var(--nexo-yellow); }
+.renault-logout-ack > span:last-child { font-size: 13px; line-height: 1.5; }
+
+/* ------------------------------ Topbar ----------------------------------- */
+.renault-app-shell .nexus-topbar {
+  height: 72px;
+  grid-template-columns: minmax(240px, 1fr) minmax(280px, 360px) auto;
+  gap: 26px; padding: 0 28px;
+  background: #fff !important; border-bottom: 1px solid #dedede !important;
+  box-shadow: 0 1px 0 rgba(0,0,0,.015);
+}
+.renault-app-shell .nexus-topbar-context strong { color: #1a1a1a; font-size: 13px; font-weight: 650; }
+.renault-app-shell .nexus-topbar-context small { color: #777; font-size: 10px; }
+.renault-app-shell .nexus-topbar-search-trigger { height: 38px; border: 1px solid #d6d6d6; border-radius: 8px; background: #fff; color: #747474; }
+.renault-app-shell .nexus-topbar-search-trigger:hover,
+.renault-app-shell .nexus-topbar-search-trigger:focus-visible { outline: none; border-color: #bfa000; box-shadow: 0 0 0 3px rgba(255,204,0,.22); }
+.renault-app-shell .nexus-topbar-search-trigger kbd { background: #f5f5f5; border-color: #dedede; color: #666; }
+.renault-app-shell .nexus-topbar-icon-btn { position: relative; color: #242424; }
+.renault-app-shell .nexus-topbar-icon-btn::after { content: ''; position: absolute; top: 5px; right: 5px; width: 7px; height: 7px; border: 2px solid #fff; border-radius: 50%; background: var(--nexo-yellow); }
+.renault-app-shell .nexus-topbar-avatar { background: #111 !important; color: var(--nexo-yellow) !important; }
+.renault-app-shell .nexus-topbar-user-copy strong { color: #111; }
+.renault-app-shell .nexus-topbar-user-copy small { color: #777; }
+
+/* ------------------------------ Page frame ------------------------------- */
+.main-pad,
+.setup-page,
+.project-list-page,
+.nexus-activity-page,
+.governance-page,
+.my-area-page,
+.nexus-global-search-page {
+  color: var(--nexo-ink);
+}
+.main-pad { padding: 24px 30px 38px; gap: 18px; }
+.setup-page { padding: 23px 30px 38px; gap: 18px; }
+.setup-page--embedded { padding: 0; }
+
+.setup-page-header { gap: 7px; }
+.setup-page-header__back { min-height: 20px; }
+.setup-page-header__main { gap: 20px; }
+.setup-page-header__title { color: #111; font-size: 27px; line-height: 1.18; font-weight: 750; letter-spacing: -.032em; }
+.setup-page-header__meta { max-width: 920px; margin-top: 5px; color: #626262; font-size: 12.5px; line-height: 1.55; }
+.setup-page-header__breadcrumb { color: #777; }
+.setup-page-header__actions { gap: 9px; }
+
+/* ------------------------------ Stepper ---------------------------------- */
+.setup-stepper-shell { padding: 0 9px; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.setup-stepper__list { height: 64px; }
+.setup-stepper__connector { width: clamp(22px, 2.4vw, 46px); margin: 0 5px; background: #d7d7d7; }
+.setup-stepper__connector--done { background: #d4ad11; }
+.setup-stepper__button { min-height: 48px; padding: 5px 7px 8px; gap: 8px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; color: #6c6c6c; background: transparent; }
+.setup-stepper__button:not(:disabled):hover { color: #111; background: transparent; }
+.setup-stepper__icon { width: 35px; height: 35px; border: 1px solid #d8d8d8; border-radius: 50%; color: #5b5b5b; background: #fff; }
+.setup-stepper__label { font-size: 11.5px; font-weight: 550; }
+.setup-stepper__item[data-state='done'] .setup-stepper__icon { border-color: var(--nexo-yellow); color: #111; background: var(--nexo-yellow); }
+.setup-stepper__item[data-state='current'] .setup-stepper__button { color: #111; border-color: var(--nexo-yellow); background: transparent; }
+.setup-stepper__item[data-state='current'] .setup-stepper__icon { border: 5px solid var(--nexo-yellow); color: #111; background: #111; }
+.setup-stepper__item[data-state='current'] .setup-stepper__icon svg { stroke: var(--nexo-yellow); }
+.setup-stepper__item[data-state='current'] .setup-stepper__label { font-weight: 700; }
+
+/* ------------------------------ Cards ------------------------------------ */
+.dbc-card,
+.dbc-section-card,
+.dbc-card-subtle {
+  border-color: var(--nexo-card-border) !important;
+  border-radius: 9px !important;
+  background: #fff !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,.035) !important;
+}
+.dbc-section-card--clickable:hover { border-color: #c9b155 !important; box-shadow: 0 7px 20px rgba(0,0,0,.07) !important; transform: translateY(-1px); }
+.dbc-section-header { min-height: 52px; padding: 14px 17px !important; }
+.dbc-section-header__title { color: #181818 !important; font-size: 12.5px !important; font-weight: 700 !important; }
+.dbc-section-header__subtitle { color: #747474 !important; font-size: 10.5px !important; }
+.dbc-section-header svg { color: #262626 !important; stroke: currentColor !important; }
+.dbc-section-card__divider, .dbc-divider { background: var(--nexo-divider) !important; }
+.dbc-section-card__body { color: #282828; }
+
+/* ------------------------------ Tabs ------------------------------------- */
+.dbc-tabs--underline { gap: 12px; border-bottom-color: #dedede; }
+.dbc-tab--underline { padding: 11px 7px !important; color: #666; border-bottom-width: 2px; }
+.dbc-tab--underline:hover:not(:disabled) { color: #111; }
+.dbc-tab--underline.dbc-tab--active { color: #111; border-bottom-color: var(--nexo-yellow); font-weight: 700; }
+.dbc-tab--pill { border-color: #d7d7d7; color: #555; background: #fff; }
+.dbc-tab--pill:hover:not(:disabled) { border-color: #d1ae18; color: #111; background: #fff9e2; }
+.dbc-tab--pill.dbc-tab--active { border-color: #d1ae18; color: #111; background: #fff4bd; }
+
+/* ------------------------------ Inputs / filters ------------------------- */
+.dbc-input,
+.knowledge-search,
+.knowledge-select,
+.knowledge-filter-select,
+.setup-table-filterbar select,
+.setup-table-filterbar input,
+.nexus-activity-search,
+.nexus-global-search-hero,
+.nexus-global-search-chips button,
+.my-area-filterbar select,
+.my-area-filterbar input {
+  border-color: #d7d7d7 !important;
+  background: #fff !important;
+}
+.dbc-input:hover,
+.knowledge-search:hover,
+.knowledge-select:hover,
+.knowledge-filter-select:hover,
+.setup-table-filterbar select:hover,
+.setup-table-filterbar input:hover { border-color: #bdbdbd !important; }
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible { outline: none; }
+input[type='checkbox'], input[type='radio'] { accent-color: var(--nexo-yellow); }
+
+/* ------------------------------ Data tables ------------------------------ */
+.dbc-data-table { color: #2b2b2b; }
+.dbc-data-table__head { background: #fafafa; color: #5f5f5f; font-size: 11px; font-weight: 650; }
+.dbc-data-table__head--active { color: #111; }
+.dbc-data-table__sort:hover { color: #111; }
+.dbc-data-table-row { border-top-color: #ececec; }
+.dbc-data-table-row--clickable:hover { background: #fffbed; }
+.dbc-data-table-row--clickable:focus-visible { outline: 2px solid #d4aa00; background: #fff9e1; }
+.dbc-row-action-button:hover { color: #111; border-color: var(--nexo-yellow-border); background: var(--nexo-yellow-soft); }
+.dbc-data-table-footer { border-top-color: #e6e6e6; background: #fff; }
+
+/* ------------------------------ Generic setup toolbars ------------------- */
+.setup-table-toolbar,
+.knowledge-toolbar,
+.knowledge-list-toolbar,
+.document-table-toolbar,
+.source-table-toolbar,
+.audience-toolbar,
+.nexus-activity-toolbar,
+.governance-filters,
+.my-area-filterbar {
+  border-color: #dedede !important;
+  background: #fff !important;
+}
+.setup-table-toolbar__copy h2,
+.knowledge-list-toolbar__copy h2,
+.document-table-toolbar__heading h2,
+.source-table-toolbar__heading h2 { color: #151515; }
+.setup-table-filterbar,
+.project-list-filterbar,
+.audience-filter-panel { background: #fafafa !important; border-color: #e6e6e6 !important; }
+
+/* ------------------------------ Entity identity -------------------------- */
+.project-summary,
+.product-summary,
+.knowledge-entity-hero,
+.product-overview,
+.audience-profile-summary,
+.document-detail-summary,
+.integration-context-panel,
+.integration-detail .knowledge-entity-hero {
+  border-color: #dedede !important;
+  background: #fff !important;
+}
+.project-summary__eyebrow,
+.knowledge-entity-hero__eyebrow,
+.integration-context-panel__eyebrow,
+.document-detail-summary__eyebrow { color: #8a6d00 !important; }
+.project-summary__title-row h2,
+.product-summary__title-row h2,
+.knowledge-entity-hero__title h2,
+.document-detail-summary__title { color: #111 !important; letter-spacing: -.025em; }
+.project-summary__facts,
+.product-summary__meta { border-top-color: #e7e7e7 !important; }
+
+/* ------------------------------ Project list ----------------------------- */
+.project-list-name-cell__icon { color: #111 !important; background: #fff4bd !important; }
+.project-list-metric { border-color: #dedede !important; background: #fff !important; }
+.project-list-metric strong { color: #111 !important; }
+.project-list-quality__track,
+.setup-product-health-row__track,
+.audience-quality-track,
+.project-form-progress__track,
+.product-form-progress__track,
+.audience-form-progress { background: #e7e7e7 !important; }
+.project-list-quality__track > span,
+.setup-product-health-row__track > span,
+.audience-quality-track > span,
+.project-form-progress__track > span,
+.product-form-progress__track > span { background: var(--nexo-yellow) !important; }
+
+/* ------------------------------ Times / people / products / rules -------- */
+.setup-rail-metric,
+.setup-role-card,
+.setup-rules-context,
+.setup-product-team-row,
+.setup-product-coverage-row,
+.setup-rule-quality-list,
+.setup-decision-card,
+.setup-people-insight,
+.setup-selected-card {
+  border-color: #dedede !important;
+  background: #fff !important;
+}
+.setup-role-card__icon,
+.setup-product-cell__icon,
+.setup-rule-cell__icon { color: #111 !important; background: #fff4bd !important; }
+.setup-rail-metric__value { color: #111 !important; }
+.setup-chip-more { color: #6d5700 !important; background: #fff8d9 !important; border-color: #f0ca35 !important; }
+
+/* ------------------------------ Product workspace ------------------------ */
+.product-detail-tabs { border-bottom-color: #dedede !important; }
+.product-overview-block__icon { color: #111 !important; background: #fff4bd !important; }
+.product-chip { border-color: #e1d18c !important; background: #fff9e2 !important; color: #514300 !important; }
+.product-country-item { border-color: #dedede !important; background: #fff !important; }
+.product-country-item:hover { border-color: #d5b93f !important; }
+.product-inline-form { border-color: #e4e4e4 !important; background: #fafafa !important; }
+
+/* ------------------------------ Knowledge / detail pages ----------------- */
+.knowledge-primary { color: #111 !important; }
+.knowledge-secondary { color: #6c6c6c !important; }
+.knowledge-metrics > *,
+.knowledge-metric-strip > *,
+.integration-metric-strip > *,
+.knowledge-connection-metrics > * { border-color: #dedede !important; background: #fff !important; }
+.knowledge-score { color: #111 !important; }
+.knowledge-checklist > div,
+.integration-governance-list > div,
+.knowledge-cross-project-list > * { border-color: #e5e5e5 !important; }
+.knowledge-detail-field > span { color: #777 !important; }
+.knowledge-detail-field p { color: #252525 !important; }
+.rule-version-timeline__dot,
+.product-form-history__dot,
+.project-form-history__dot,
+.audience-history__dot,
+.source-history__dot,
+.document-version-list__marker { border-color: var(--nexo-yellow) !important; background: #fff7cf !important; }
+
+/* ------------------------------ Graphs / maps ---------------------------- */
+.integration-graph-shell,
+.ecosystem-graph-shell,
+.knowledge-map__canvas-shell { border-color: #dedede !important; border-radius: 9px !important; background: #fff !important; box-shadow: 0 2px 8px rgba(0,0,0,.035); }
+.integration-graph,
+.ecosystem-graph,
+.knowledge-map__canvas { background-color: #fbfbfb !important; }
+.integration-graph__node-surface,
+.ecosystem-graph__node-surface,
+.knowledge-map__node-surface { border-color: #d8d8d8 !important; border-radius: 8px !important; background: #fff !important; box-shadow: 0 3px 9px rgba(0,0,0,.045) !important; }
+.integration-graph__node-surface:hover,
+.ecosystem-graph__node-surface:hover,
+.knowledge-map__node-surface:hover { border-color: #d8b52e !important; box-shadow: 0 7px 18px rgba(0,0,0,.08) !important; }
+.integration-graph__node-avatar,
+.ecosystem-graph__node-avatar,
+.knowledge-map__node-avatar { color: #111 !important; background: #fff4bd !important; }
+.integration-graph__edges path,
+.ecosystem-graph__edges path,
+.knowledge-map__edges path { stroke: #d4ad11 !important; }
+.integration-graph__edge-label,
+.ecosystem-graph__edge-label,
+.knowledge-map__edge-label { fill: #5f4c00 !important; }
+.integration-context-panel,
+.integration-context-empty,
+.knowledge-map__inspector,
+.knowledge-map__inspector-empty,
+.ecosystem-focus-card,
+.ecosystem-insight-card { border-color: #dedede !important; background: #fff !important; }
+
+/* ------------------------------ Governance ------------------------------- */
+.governance-scopebar,
+.governance-score-card,
+.governance-coverage,
+.governance-principle,
+.governance-rail-stat { border-color: #dedede !important; background: #fff !important; }
+.governance-metrics > * { border-color: #dedede !important; background: #fff !important; }
+.governance-score-card strong,
+.governance-rail-stat strong { color: #111 !important; }
+.governance-coverage__track { background: #e6e6e6 !important; }
+.governance-coverage__track > span { background: var(--nexo-yellow) !important; }
+.governance-filter-count { color: #111 !important; background: #fff4bd !important; border-color: #f0ca35 !important; }
+
+/* ------------------------------ Search ----------------------------------- */
+.nexus-global-search-header h1 { color: #111; font-size: 27px; font-weight: 750; letter-spacing: -.03em; }
+.nexus-global-search-header p { color: #666; }
+.nexus-global-search-hero { border: 1px solid #d7d7d7; border-radius: 9px; box-shadow: 0 2px 8px rgba(0,0,0,.035); }
+.nexus-global-search-hero button { border-color: var(--nexo-yellow) !important; background: var(--nexo-yellow) !important; color: #111 !important; font-weight: 700 !important; }
+.nexus-global-search-hero button:hover:not(:disabled) { background: var(--nexo-yellow-hover) !important; }
+.nexus-global-search-filter-card,
+.nexus-global-search-list { border-color: #dedede !important; background: #fff !important; box-shadow: 0 2px 8px rgba(0,0,0,.035) !important; }
+.nexus-global-search-chips button.is-active { border-color: #d6b328 !important; background: #fff4bd !important; color: #111 !important; }
+.nexus-global-search-row:hover { background: #fffbed !important; }
+
+/* ------------------------------ Activity --------------------------------- */
+.nexus-activity-metrics > *,
+.nexus-activity-toolbar,
+.nexus-activity-timeline { border-color: #dedede !important; background: #fff !important; box-shadow: 0 2px 8px rgba(0,0,0,.035); }
+.nexus-activity-day { color: #6a6a6a !important; }
+.nexus-activity-item { border-color: #e7e7e7 !important; }
+.nexus-activity-principle { color: #6b5700 !important; background: #fff8d9 !important; border-color: #f0ca35 !important; }
+.nexus-activity-links a { color: #6d5700 !important; }
+
+/* ------------------------------ My area ---------------------------------- */
+.my-area-metrics > *,
+.my-area-identity,
+.my-area-context-list,
+.my-area-projects,
+.my-area-activity { border-color: #dedede !important; background: #fff !important; box-shadow: 0 2px 8px rgba(0,0,0,.035); }
+.my-area-projects button:hover { border-color: #d6b328 !important; background: #fffbed !important; }
+.my-area-projects button:focus-visible { outline-color: #d6aa00 !important; }
+
+/* ------------------------------ Documents / sources / audience ----------- */
+.document-summary-grid > *,
+.source-summary-grid > *,
+.document-selected-card,
+.source-selected-card,
+.document-governance-card,
+.document-form-score,
+.document-form-checklist,
+.source-form,
+.audience-detail-rail > *,
+.audience-list-rail > *,
+.audience-scope-alert,
+.audience-form-rail > * { border-color: #dedede !important; background: #fff !important; }
+.document-selected-card__code,
+.source-selected-card__reference { color: #6d5700 !important; background: #fff8d9 !important; border-color: #f0ca35 !important; }
+.document-editor-grid,
+.source-form__grid { gap: 16px; }
+
+/* ------------------------------ Modal / overlays ------------------------- */
+.nexus-search-dialog { border: 1px solid #d8d8d8 !important; box-shadow: 0 24px 70px rgba(0,0,0,.22) !important; }
+.nexus-search-result.is-active,
+.nexus-search-result:hover { background: #fff8d9 !important; }
+
+/* ------------------------------ Responsive -------------------------------- */
+@media (max-width: 1180px) {
+  .setup-page, .main-pad { padding-inline: 22px; }
+  .setup-stepper__connector { width: 22px; }
+}
+
+@media (max-width: 980px) {
+  .renault-app-shell .nexus-topbar { grid-template-columns: minmax(0,1fr) minmax(220px,320px) auto; padding-inline: 18px; }
+  .renault-app-shell .nexus-topbar-context small { display: none; }
+  .setup-page-header__title { font-size: 24px; }
+}
+
+@media (max-width: 700px) {
+  .renault-app-shell .dbc-sidebar { width: 72px !important; }
+  .renault-app-shell .nexus-topbar { height: 60px; grid-template-columns: minmax(0,1fr) auto; padding: 0 12px; gap: 8px; }
+  .renault-app-shell .nexus-topbar-context { display: none; }
+  .setup-page, .main-pad { padding: 16px 14px 28px; }
+  .setup-page-header__main { flex-direction: column; align-items: stretch; }
+  .setup-page-header__actions { justify-content: flex-start; }
+  .setup-stepper-shell { padding: 0; }
+}
+
+@media (max-width: 480px) {
+  .renault-app-shell .dbc-sidebar { display: none !important; }
+  .setup-page-header__title, .nexus-global-search-header h1 { font-size: 22px; }
+}
+
+/* Visão Geral do Setup */
+.renault-overview-page .dbc-section-card { min-height: 100%; }
+.renault-overview-bars { min-height: 156px; display: flex; flex-direction: column; justify-content: center; gap: 16px; }
+.renault-overview-readiness { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 18px 28px; }
+@media (max-width: 760px) { .renault-overview-readiness { grid-template-columns: 1fr; } }
+.integration-flow-connector > span { background: var(--nexo-yellow) !important; color: #111 !important; }
+.nexus-activity-search button { border-color: var(--nexo-yellow) !important; background: var(--nexo-yellow) !important; color: #111 !important; font-weight: 700 !important; }
+.nexus-activity-search button:hover { background: var(--nexo-yellow-hover) !important; }

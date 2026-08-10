@@ -1,0 +1,529 @@
+// Nexus 2.0 — schema Prisma (Fase 2: Produto Real)
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id             String         @id @default(cuid())
+  email          String         @unique
+  nome           String
+  passwordHash   String         @map("password_hash")
+  isActive       Boolean        @default(true) @map("is_active")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  historyEntries    HistoryEntry[]
+  documentosCriados DocumentoConhecimento[] @relation("DocumentoCriadoPor")
+  documentoVersoes  DocumentoVersao[]       @relation("DocumentoVersaoCriadoPor")
+
+  @@map("users")
+}
+
+enum ProjetoStatus {
+  Ativo
+  Planejamento
+  Inativo
+
+  @@map("projeto_status")
+}
+
+model Projeto {
+  id                   String        @id @default(cuid())
+  nome                 String
+  codigo               String        @unique
+  status               ProjetoStatus @default(Ativo)
+  descricao            String?
+  objetivo             String?
+  areaNegocio          String?       @map("area_negocio")
+  idiomas              String[]      @default([])
+  dataInicio           DateTime?     @map("data_inicio") @db.Date
+  responsavelPrincipal String?       @map("responsavel_principal")
+  jiraRef              String?       @map("jira_ref")
+  confluenceRef        String?       @map("confluence_ref")
+  observacoes          String?
+  paisesDisponiveis    String[]      @default([]) @map("paises_disponiveis")
+  fontesGerais         String[]      @default([]) @map("fontes_gerais")
+  createdAt            DateTime      @default(now()) @map("created_at")
+  updatedAt            DateTime      @updatedAt @map("updated_at")
+
+  times                Time[]
+  pessoas              Pessoa[]
+  produtos             Produto[]
+  fontesConhecimento   FonteConhecimento[] @relation("FonteProjetoProprietario")
+  fonteVinculos        FonteVinculo[]       @relation("FonteVinculoProjetoContexto")
+  documentosConhecimento DocumentoConhecimento[] @relation("DocumentoProjetoProprietario")
+  documentoVinculos      DocumentoVinculo[]      @relation("DocumentoVinculoProjetoContexto")
+
+  @@map("projetos")
+  @@index([status])
+  @@index([areaNegocio])
+}
+
+enum TimeStatus {
+  Ativo
+  Inativo
+
+  @@map("time_status")
+}
+
+model Time {
+  id                    String     @id @default(cuid())
+  projetoId             String     @map("projeto_id")
+  projeto               Projeto    @relation(fields: [projetoId], references: [id], onDelete: Cascade)
+  nome                  String
+  missao                String?    @map("missao")
+  descricao             String?
+  responsavelPrincipal  String?    @map("responsavel_principal")
+  paisesAtuacao         String[]   @default([]) @map("paises_atuacao")
+  canaisComunicacao     String[]   @default([]) @map("canais_comunicacao")
+  produtosAtendidos     String[]   @default([]) @map("produtos_atendidos")
+  observacoes           String?
+  status                TimeStatus @default(Ativo)
+  createdAt             DateTime   @default(now()) @map("created_at")
+  updatedAt             DateTime   @updatedAt @map("updated_at")
+
+  pessoas               Pessoa[]
+  produtosResponsaveis  Produto[]
+  integracoes           Integracao[]
+
+  @@map("times")
+  @@index([projetoId])
+  @@index([status])
+}
+
+enum PessoaStatus {
+  Ativo
+  Inativo
+
+  @@map("pessoa_status")
+}
+
+model Pessoa {
+  id                String       @id @default(cuid())
+  projetoId         String       @map("projeto_id")
+  projeto           Projeto      @relation(fields: [projetoId], references: [id], onDelete: Cascade)
+  nome              String
+  emailCorporativo  String?      @map("email_corporativo")
+  papel             String?
+  cargo             String?
+  timeId            String?      @map("time_id")
+  time              Time?        @relation(fields: [timeId], references: [id])
+  produtos          String[]     @default([])
+  responsabilidades String[]     @default([])
+  especialidades    String[]     @default([])
+  nivelDecisao      String?      @map("nivel_decisao")
+  pessoaReferencia  Boolean      @default(false) @map("pessoa_referencia")
+  observacoes       String?
+  status            PessoaStatus @default(Ativo)
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+
+  @@map("pessoas")
+  @@index([projetoId])
+  @@index([timeId])
+  @@index([status])
+}
+
+enum ProdutoStatus {
+  Ativo
+  Planejamento
+  Inativo
+
+  @@map("produto_status")
+}
+
+model Produto {
+  id                   String        @id @default(cuid())
+  projetoId            String        @map("projeto_id")
+  projeto              Projeto       @relation(fields: [projetoId], references: [id], onDelete: Cascade)
+  nome                 String
+  nomeCurto            String?       @map("nome_curto")
+  codigo               String
+  status               ProdutoStatus @default(Planejamento)
+  descricao            String?
+  objetivo             String?
+  problemaResolve      String?       @map("problema_resolve")
+  usuariosPrincipais   String?       @map("usuarios_principais")
+  areaNegocio          String?       @map("area_negocio")
+  areasBeneficiadas    String[]      @default([]) @map("areas_beneficiadas")
+  timeResponsavelId    String?       @map("time_responsavel_id")
+  timeResponsavel      Time?         @relation(fields: [timeResponsavelId], references: [id])
+  responsavelPrincipal String?       @map("responsavel_principal")
+  ambientes            String[]      @default([])
+  paises               String[]      @default([])
+  observacoes          String?
+  estabilidadeStatus   String        @default("Em Desenvolvimento") @map("estabilidade_status")
+  estabilidadeObservacao String?     @map("estabilidade_observacao")
+  createdAt            DateTime      @default(now()) @map("created_at")
+  updatedAt            DateTime      @updatedAt @map("updated_at")
+
+  publicosAlvo         PublicoAlvo[]
+  modulos              Modulo[]
+  funcionalidades      Funcionalidade[]
+  jornadas             Jornada[]
+  jornadasParticipantes Jornada[]    @relation("JornadaProdutosParticipantes")
+  regras               Regra[]
+  integracoes          Integracao[]  @relation("IntegracaoProduto")
+  integracoesRelacionadas Integracao[] @relation("IntegracaoProdutoRelacionado")
+
+  @@map("produtos")
+  @@unique([projetoId, codigo])
+  @@index([projetoId])
+  @@index([status])
+  @@index([timeResponsavelId])
+}
+
+enum PublicoAlvoStatus {
+  Ativo
+  Inativo
+
+  @@map("publico_alvo_status")
+}
+
+model PublicoAlvo {
+  id                 String            @id @default(cuid())
+  produtoId          String            @map("produto_id")
+  produto            Produto           @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  nome               String
+  status             PublicoAlvoStatus @default(Ativo)
+  perfil             String?
+  tipoUsuario        String?           @map("tipo_usuario")
+  descricao          String?
+  necessidades       String[]          @default([])
+  dores              String[]          @default([])
+  objetivos          String[]          @default([])
+  frequenciaUso      String?           @map("frequencia_uso")
+  canaisUtilizados   String[]          @default([]) @map("canais_utilizados")
+  paisesOndeSeAplica String[]          @default([]) @map("paises_onde_se_aplica")
+  observacoes        String?
+  createdAt          DateTime          @default(now()) @map("created_at")
+  updatedAt          DateTime          @updatedAt @map("updated_at")
+
+  jornadas    Jornada[]
+
+  @@map("publico_alvo")
+  @@index([produtoId])
+  @@index([status])
+}
+
+enum ModuloStatus {
+  Ativo
+  Inativo
+
+  @@map("modulo_status")
+}
+
+model Modulo {
+  id                   String       @id @default(cuid())
+  produtoId            String       @map("produto_id")
+  produto              Produto      @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  nome                 String
+  codigo               String
+  status               ModuloStatus @default(Ativo)
+  descricao            String?
+  objetivo             String?
+  responsavelPrincipal String?      @map("responsavel_principal")
+  ordemExibicao        Int?         @map("ordem_exibicao")
+  observacoes          String?
+  createdAt            DateTime     @default(now()) @map("created_at")
+  updatedAt            DateTime     @updatedAt @map("updated_at")
+
+  funcionalidades      Funcionalidade[]
+  jornadas             Jornada[]        @relation("JornadaModulos")
+  regras               Regra[]          @relation("RegraModulos")
+
+  @@map("modulos")
+  @@unique([produtoId, codigo])
+  @@index([produtoId])
+  @@index([status])
+}
+
+enum FuncionalidadeStatus {
+  Ativo
+  Inativo
+
+  @@map("funcionalidade_status")
+}
+
+model Funcionalidade {
+  id                    String               @id @default(cuid())
+  produtoId             String               @map("produto_id")
+  produto               Produto              @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  nome                  String
+  codigo                String
+  moduloId              String?              @map("modulo_id")
+  modulo                Modulo?              @relation(fields: [moduloId], references: [id])
+  status                FuncionalidadeStatus @default(Ativo)
+  descricao             String?
+  objetivo              String?
+  comportamentoEsperado String?              @map("comportamento_esperado")
+  usuarios              String?
+  responsavelPrincipal  String?              @map("responsavel_principal")
+  observacoes           String?
+  createdAt             DateTime             @default(now()) @map("created_at")
+  updatedAt             DateTime             @updatedAt @map("updated_at")
+
+  jornadas              Jornada[]            @relation("JornadaFuncionalidades")
+  regras                Regra[]              @relation("RegraFuncionalidades")
+  integracoes           Integracao[]         @relation("IntegracaoFuncionalidades")
+
+  @@map("funcionalidades")
+  @@unique([produtoId, codigo])
+  @@index([produtoId])
+  @@index([status])
+  @@index([moduloId])
+}
+
+enum JornadaStatus {
+  Ativo
+  Inativo
+
+  @@map("jornada_status")
+}
+
+model Jornada {
+  id                String        @id @default(cuid())
+  produtoId         String        @map("produto_id")
+  produto           Produto       @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  nome              String
+  status            JornadaStatus @default(Ativo)
+  descricao         String?
+  publicoAlvoId     String?       @map("publico_alvo_id")
+  publicoAlvo       PublicoAlvo?  @relation(fields: [publicoAlvoId], references: [id])
+  objetivo          String?
+  eventoInicial     String?       @map("evento_inicial")
+  resultadoEsperado String?       @map("resultado_esperado")
+  etapas            String[]      @default([])
+  paises            String[]      @default([])
+  observacoes       String?
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  modulos               Modulo[]         @relation("JornadaModulos")
+  funcionalidades       Funcionalidade[] @relation("JornadaFuncionalidades")
+  produtosParticipantes Produto[]        @relation("JornadaProdutosParticipantes")
+  regras                Regra[]          @relation("RegraJornadas")
+
+  @@map("jornadas")
+  @@index([produtoId])
+  @@index([status])
+  @@index([publicoAlvoId])
+}
+
+enum RegraStatus {
+  Ativo
+  Inativo
+
+  @@map("regra_status")
+}
+
+model Regra {
+  id                String           @id @default(cuid())
+  produtoId         String           @map("produto_id")
+  produto           Produto          @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  grupoId           String           @map("grupo_id")
+  numeroVersao      Int              @default(1) @map("numero_versao")
+  versaoAtual       Boolean          @default(true) @map("versao_atual")
+  nome              String
+  status            RegraStatus      @default(Ativo)
+  condicao          String?
+  resultadoEsperado String?          @map("resultado_esperado")
+  excecoes          String[]         @default([])
+  exemplos          String[]         @default([])
+  prioridade        String?
+  vigenciaInicio    DateTime?        @map("vigencia_inicio") @db.Date
+  vigenciaFim       DateTime?        @map("vigencia_fim") @db.Date
+  observacoes       String?
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+
+  modulos         Modulo[]         @relation("RegraModulos")
+  funcionalidades Funcionalidade[] @relation("RegraFuncionalidades")
+  jornadas        Jornada[]        @relation("RegraJornadas")
+
+  @@map("regras")
+  @@index([produtoId])
+  @@index([grupoId])
+  @@index([status])
+}
+
+enum IntegracaoStatus {
+  Ativo
+  Inativo
+
+  @@map("integracao_status")
+}
+
+model Integracao {
+  id                    String           @id @default(cuid())
+  produtoId             String           @map("produto_id")
+  produto               Produto          @relation("IntegracaoProduto", fields: [produtoId], references: [id], onDelete: Cascade)
+  nome                  String
+  status                IntegracaoStatus @default(Ativo)
+  direcao               String?
+  papelDependencia      String?          @map("papel_dependencia")
+  produtoRelacionadoId  String?          @map("produto_relacionado_id")
+  produtoRelacionado    Produto?         @relation("IntegracaoProdutoRelacionado", fields: [produtoRelacionadoId], references: [id])
+  tipo                  String?
+  endpoint              String?
+  modo                  String?
+  criticidade           String?
+  dadosTrafegados       String?          @map("dados_trafegados")
+  timeProprietarioId    String?          @map("time_proprietario_id")
+  timeProprietario      Time?            @relation(fields: [timeProprietarioId], references: [id])
+  observacoes           String?
+  createdAt             DateTime         @default(now()) @map("created_at")
+  updatedAt             DateTime         @updatedAt @map("updated_at")
+
+  funcionalidades       Funcionalidade[] @relation("IntegracaoFuncionalidades")
+
+  @@map("integracoes")
+  @@index([produtoId])
+  @@index([produtoRelacionadoId])
+  @@index([timeProprietarioId])
+  @@index([status])
+}
+
+
+enum FonteStatus {
+  Ativa
+  Revisao
+  Inativa
+
+  @@map("fonte_status")
+}
+
+model FonteConhecimento {
+  id                String      @id @default(cuid())
+  projetoId         String      @map("projeto_id")
+  projeto           Projeto     @relation("FonteProjetoProprietario", fields: [projetoId], references: [id], onDelete: Cascade)
+  nome              String
+  tipo              String
+  referencia        String
+  status            FonteStatus @default(Ativa)
+  oficial           Boolean     @default(false)
+  responsavel       String?
+  descricao         String?
+  ultimaVerificacao DateTime?   @map("ultima_verificacao") @db.Date
+  observacoes       String?
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+
+  vinculos          FonteVinculo[]
+
+  @@map("fontes_conhecimento")
+  @@unique([projetoId, referencia])
+  @@index([projetoId])
+  @@index([status])
+  @@index([tipo])
+}
+
+model FonteVinculo {
+  id                String            @id @default(cuid())
+  fonteId           String            @map("fonte_id")
+  fonte             FonteConhecimento @relation(fields: [fonteId], references: [id], onDelete: Cascade)
+  projetoContextoId String            @map("projeto_contexto_id")
+  projetoContexto   Projeto           @relation("FonteVinculoProjetoContexto", fields: [projetoContextoId], references: [id], onDelete: Cascade)
+  entityType        String            @map("entity_type")
+  entityId          String            @map("entity_id")
+  contexto          String?
+  createdAt         DateTime          @default(now()) @map("created_at")
+
+  @@map("fontes_vinculos")
+  @@unique([fonteId, entityType, entityId])
+  @@index([fonteId])
+  @@index([projetoContextoId])
+  @@index([entityType, entityId])
+}
+
+
+enum DocumentoStatus {
+  Rascunho
+  Revisao
+  Publicado
+  Arquivado
+
+  @@map("documento_status")
+}
+
+model DocumentoConhecimento {
+  id              String          @id @default(cuid())
+  projetoId       String          @map("projeto_id")
+  projeto         Projeto         @relation("DocumentoProjetoProprietario", fields: [projetoId], references: [id], onDelete: Cascade)
+  codigo          String
+  titulo          String
+  tipo            String
+  status          DocumentoStatus @default(Rascunho)
+  resumo          String?
+  conteudo        String?
+  responsavel     String?
+  versao          Int             @default(1)
+  versaoPublicada Int?            @map("versao_publicada")
+  publicadoEm     DateTime?       @map("publicado_em")
+  createdByUserId String?         @map("created_by_user_id")
+  createdBy       User?           @relation("DocumentoCriadoPor", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  versoes         DocumentoVersao[]
+  vinculos        DocumentoVinculo[]
+
+  @@map("documentos_conhecimento")
+  @@unique([projetoId, codigo])
+  @@index([projetoId])
+  @@index([status])
+  @@index([tipo])
+}
+
+model DocumentoVersao {
+  id              String                @id @default(cuid())
+  documentoId     String                @map("documento_id")
+  documento       DocumentoConhecimento @relation(fields: [documentoId], references: [id], onDelete: Cascade)
+  numero          Int
+  titulo          String
+  resumo          String?
+  conteudo        String?
+  motivoAlteracao String?               @map("motivo_alteracao")
+  createdByUserId String?               @map("created_by_user_id")
+  createdBy       User?                 @relation("DocumentoVersaoCriadoPor", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  createdAt       DateTime              @default(now()) @map("created_at")
+
+  @@map("documentos_versoes")
+  @@unique([documentoId, numero])
+  @@index([documentoId, createdAt])
+}
+
+model DocumentoVinculo {
+  id                String                @id @default(cuid())
+  documentoId       String                @map("documento_id")
+  documento         DocumentoConhecimento @relation(fields: [documentoId], references: [id], onDelete: Cascade)
+  projetoContextoId String                @map("projeto_contexto_id")
+  projetoContexto   Projeto               @relation("DocumentoVinculoProjetoContexto", fields: [projetoContextoId], references: [id], onDelete: Cascade)
+  entityType        String                @map("entity_type")
+  entityId          String                @map("entity_id")
+  contexto          String?
+  createdAt         DateTime              @default(now()) @map("created_at")
+
+  @@map("documentos_vinculos")
+  @@unique([documentoId, entityType, entityId])
+  @@index([documentoId])
+  @@index([projetoContextoId])
+  @@index([entityType, entityId])
+}
+
+model HistoryEntry {
+  id          String   @id @default(cuid())
+  entityType  String   @map("entity_type")
+  entityId    String   @map("entity_id")
+  label       String
+  actorUserId String?  @map("actor_user_id")
+  actor       User?    @relation(fields: [actorUserId], references: [id])
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("history_entries")
+  @@index([entityType, entityId, createdAt])
+}

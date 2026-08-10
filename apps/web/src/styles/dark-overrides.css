@@ -1,0 +1,71 @@
+/* Dark mode — tokens + overrides extraídos do protótipo Nexus 2.0 (Home.html).
+   colors_and_type.css não define tokens dark; eles são redefinidos aqui.
+   Os componentes do design system usam classes dbc-* + inline styles com
+   base em useDark(); os overrides !important vencem os inline styles das
+   variantes que ainda não checam o tema (ex.: hover states via onMouseEnter). */
+
+html.dark {
+  --color-bg-layout: #0d0f16;
+  --color-bg-container: #161923;
+  --color-bg-subtle: #1d2030;
+  --color-bg-alt: #1d2030;
+  --color-text: rgba(226, 228, 239, 0.92);
+  --color-text-secondary: rgba(139, 145, 176, 0.88);
+  --color-text-tertiary: rgba(90, 96, 128, 0.88);
+  --color-text-quaternary: rgba(60, 66, 96, 0.88);
+  --color-text-heading: rgba(226, 228, 239, 0.92);
+  --color-border: #2a2d3d;
+  --color-border-secondary: #1f2235;
+  --color-split: rgba(255, 255, 255, 0.05);
+  --color-fill: rgba(255, 255, 255, 0.12);
+  --color-fill-secondary: rgba(255, 255, 255, 0.07);
+  --color-fill-tertiary: rgba(255, 255, 255, 0.04);
+}
+html.dark ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); }
+
+/* Surfaces */
+html.dark .dbc-card { background: var(--color-bg-container) !important; border-color: var(--color-border) !important; }
+html.dark .dbc-card-subtle { background: var(--color-bg-subtle) !important; border-color: var(--color-border) !important; }
+html.dark .dbc-layout-bg { background: var(--color-bg-layout) !important; }
+
+/* Text */
+html.dark .dbc-text { color: var(--color-text) !important; }
+html.dark .dbc-text-2 { color: var(--color-text-secondary) !important; }
+html.dark .dbc-text-3 { color: var(--color-text-tertiary) !important; }
+
+/* Dividers */
+html.dark .dbc-divider { background: var(--color-border) !important; }
+html.dark .dbc-divider-v { background: var(--color-border) !important; }
+
+/* Sidebar */
+html.dark .dbc-sidebar { background: #050505 !important; border-right-color: #222 !important; }
+html.dark .dbc-sidebar-collapse-btn {
+  background: var(--color-bg-subtle) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text-secondary) !important;
+}
+html.dark .dbc-sidebar-collapse-btn:hover {
+  background: rgba(255, 204, 0, 0.12) !important;
+  border-color: rgba(255, 204, 0, 0.42) !important;
+  color: #ffcc00 !important;
+}
+html.dark .dbc-sidebar-section-label { color: var(--color-text-tertiary) !important; }
+html.dark .dbc-nav-item { color: var(--color-text-secondary) !important; }
+html.dark .dbc-nav-item:hover { background: rgba(255, 255, 255, 0.05) !important; color: var(--color-text) !important; }
+html.dark .dbc-nav-item-active { background: rgba(255, 204, 0, 0.12) !important; color: #ffcc00 !important; }
+html.dark .dbc-sidebar-footer { border-top-color: var(--color-border) !important; }
+html.dark .dbc-logout-btn { color: #ff7875 !important; }
+html.dark .dbc-logout-btn:hover { background: rgba(255, 77, 79, 0.1) !important; }
+
+/* Topbar */
+html.dark .dbc-topbar { background: var(--color-bg-container) !important; border-bottom-color: var(--color-border) !important; }
+html.dark .dbc-topbar-sep { background: var(--color-border) !important; }
+html.dark .dbc-icon-badge {
+  background: var(--color-bg-subtle) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text-secondary) !important;
+}
+
+/* Inputs (raw <input>/<select> com className dbc-input) */
+html.dark .dbc-input { background: var(--color-bg-subtle) !important; border-color: var(--color-border) !important; color: var(--color-text) !important; }
+html.dark .dbc-input::placeholder { color: var(--color-text-tertiary) !important; }

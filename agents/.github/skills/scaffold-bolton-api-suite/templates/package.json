@@ -1,0 +1,34 @@
+{
+  "name": "__PROJECT_NAME__",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "test": "npx playwright test --grep-invert \"@opt-in|@claims\"",
+    "test:headed": "npx playwright test --headed --grep-invert \"@opt-in|@claims\"",
+    "test:debug": "npx playwright test --debug",
+    "test:allure": "npx playwright test --reporter=list,allure-playwright --grep-invert \"@opt-in|@claims\"",
+    "test:smoke": "npx playwright test --grep \"@smoke\"",
+    "test:contract": "npx playwright test --grep \"@contract\"",
+    "test:flow": "npx playwright test --grep \"@flow\"",
+    "test:claims": "npx playwright test --grep \"@claims\"",
+    "test:regression": "npx playwright test --grep \"@regression\"",
+    "test:auth": "npx playwright test --grep \"@auth\" --grep-invert \"@opt-in\"",
+    "test:authz": "npx playwright test --grep \"@authz\" --grep-invert \"@opt-in\"",
+    "test:idempotency": "npx playwright test --grep \"@idempotency\"",
+    "test:performance": "npx playwright test --grep \"@performance\"",
+    "test:create": "npx playwright test --grep \"@create\"",
+    "test:exclude": "npx playwright test --grep-invert",
+    "allure:generate": "allure generate allure-results --clean -o allure-report",
+    "allure:open": "allure open allure-report",
+    "report": "npx playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.50.0",
+    "@types/node": "^25.7.0",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
+    "allure-commandline": "^2.26.0",
+    "allure-playwright": "^3.8.0",
+    "typescript": "^5.5.0"
+  }
+}

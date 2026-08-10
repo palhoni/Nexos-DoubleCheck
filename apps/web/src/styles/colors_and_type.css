@@ -1,0 +1,320 @@
+/* =========================================================================
+   Nexo Renault Design System — Core Tokens
+   Colors, type, radii, shadows, spacing.
+   Built on Ant Design foundations and aligned to the Renault / Nexo visual identity.
+   ========================================================================= */
+
+/* -----------------------------  FONTS  ----------------------------------- */
+/* Fallback via CDN (Roboto + Space Mono + Inter). Inter também é auto-hospedada
+   abaixo (assets/fonts/) para funcionar offline e ficar versionada no DS. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@100;300;400;500;600;700;800&family=Roboto:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap");
+
+/* --- Inter auto-hospedada (SIL OFL 1.1 · assets/fonts/) ------------------- */
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 100; font-display: swap; src: url("/fonts/Inter-Thin.ttf")      format("truetype"); }
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 300; font-display: swap; src: url("/fonts/Inter-Light.ttf")     format("truetype"); }
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 400; font-display: swap; src: url("/fonts/Inter-Regular.ttf")   format("truetype"); }
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 500; font-display: swap; src: url("/fonts/Inter-Medium.ttf")    format("truetype"); }
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 600; font-display: swap; src: url("/fonts/Inter-SemiBold.ttf")  format("truetype"); }
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 700; font-display: swap; src: url("/fonts/Inter-Bold.ttf")      format("truetype"); }
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 800; font-display: swap; src: url("/fonts/Inter-ExtraBold.ttf") format("truetype"); }
+
+:root {
+  /* ===================================================================
+     COLOR — PRIMARY / RENAULT
+     Yellow is the selection/action accent; black provides structural contrast.
+     Legacy --dbc-blue-* aliases are intentionally kept so older components inherit
+     the Renault palette without reintroducing the former blue identity.
+     =================================================================== */
+  --renault-yellow: #ffcc00;
+  --renault-yellow-hover: #f5c400;
+  --renault-yellow-active: #e4b600;
+  --renault-black: #050505;
+  --renault-ink: #141414;
+  --renault-gray: #6f6f6f;
+
+  --dbc-blue-1:  #fff8d9;
+  --dbc-blue-2:  #fff0ad;
+  --dbc-blue-3:  #ffe276;
+  --dbc-blue-4:  #ffd640;
+  --dbc-blue-5:  #ffcc00;
+  --dbc-blue-6:  #c79f00;
+  --dbc-blue-7:  #9a7a00;
+  --dbc-blue-8:  #755d00;
+  --dbc-blue-9:  #5b4800;
+  --dbc-blue-10: #332900;
+
+  --color-primary:         #c79f00;
+  --color-primary-hover:   #9a7a00;
+  --color-primary-active:  #755d00;
+  --color-primary-bg:      #fff8d9;
+  --color-primary-bg-hover:#fff1b8;
+  --color-primary-border:  #f0ca35;
+  --color-primary-text:    #755d00;
+
+  /* Secondary brand — the logo's gray-blue stroke */
+  --dbc-steel: #737373;
+
+  /* ===================================================================
+     COLOR — NEUTRALS (rgba-on-white, Ant Design pattern)
+     Text + border uses rgba(5,5,5,*) so neutrals feel slightly warm-cool.
+     =================================================================== */
+  --color-text:            rgba(5, 5, 5, 0.88);   /* body copy */
+  --color-text-secondary:  rgba(5, 5, 5, 0.65);   /* captions, subtitles */
+  --color-text-tertiary:   rgba(5, 5, 5, 0.45);   /* placeholder, meta */
+  --color-text-quaternary: rgba(5, 5, 5, 0.25);   /* disabled text */
+
+  --color-text-heading:    rgba(5, 5, 5, 0.88);
+  --color-text-inverse:    #ffffff;
+
+  --color-bg-layout:       #f5f5f5;   /* page background outside cards */
+  --color-bg-container:    #ffffff;   /* card, input, modal surface */
+  --color-bg-elevated:     #ffffff;   /* popover, dropdown, tooltip */
+  --color-bg-spotlight:    rgba(0, 0, 0, 0.85);   /* tour, tooltip bg */
+  --color-bg-mask:         rgba(0, 0, 0, 0.45);   /* modal scrim */
+  --color-bg-subtle:       #fafafa;
+  --color-bg-alt:          #f0f0f0;
+
+  --color-border:          #d9d9d9;   /* default 1px borders */
+  --color-border-secondary:#f0f0f0;   /* dividers, table rows */
+  --color-split:           rgba(5, 5, 5, 0.06);
+
+  --color-fill:            rgba(0, 0, 0, 0.15);
+  --color-fill-secondary:  rgba(0, 0, 0, 0.06);
+  --color-fill-tertiary:   rgba(0, 0, 0, 0.04);   /* hover-bg on ghost buttons */
+  --color-fill-quaternary: rgba(0, 0, 0, 0.02);
+
+  /* Dark layout chrome (top nav, admin shell — matches Ant header) */
+  --color-header-bg:       #050505;
+  --color-header-bg-2:     #151515;
+  --color-header-text:     rgba(255, 255, 255, 0.88);
+  --color-header-text-muted:rgba(255, 255, 255, 0.65);
+
+  /* ===================================================================
+     COLOR — SEMANTIC
+     =================================================================== */
+  --color-success:     #52c41a;
+  --color-success-bg:  #f6ffed;
+  --color-success-border:#b7eb8f;
+
+  --color-warning:     #faad14;
+  --color-warning-bg:  #fffbe6;
+  --color-warning-border:#ffe58f;
+
+  --color-error:       #ff4d4f;
+  --color-error-bg:    #fff1f0;
+  --color-error-border:#ffccc7;
+
+  --color-info:        #3b82c4;
+  --color-info-bg:     #edf6ff;
+  --color-info-border: #a8cdec;
+
+  /* ===================================================================
+     TYPOGRAPHY
+     Primary UI font = Inter (matches Figma body-text usage, 2354× Regular
+     + 1450× Medium + 639× Semibold). Roboto appears on legacy component
+     labels; we keep it as a fallback. Space Mono for property labels/code.
+     =================================================================== */
+  --font-sans: "Inter", "Roboto", -apple-system, BlinkMacSystemFont,
+               "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Space Mono", "SF Mono", Menlo, Consolas, monospace;
+  --font-display: "Inter", "Roboto", sans-serif;
+
+  /* Weights */
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+
+  /* Font sizes — Ant 5 scale */
+  --fs-xs: 12px;   /* captions, meta, badges */
+  --fs-sm: 14px;   /* default body / form inputs */
+  --fs-md: 16px;   /* emphasized body, H5 */
+  --fs-lg: 20px;   /* H4 */
+  --fs-xl: 24px;   /* H3 */
+  --fs-2xl: 30px;  /* H2 */
+  --fs-3xl: 38px;  /* H1 */
+  --fs-4xl: 48px;  /* hero */
+  --fs-5xl: 64px;  /* hero display */
+
+  /* Line heights — Ant 5 */
+  --lh-xs: 20px;
+  --lh-sm: 22px;
+  --lh-md: 24px;
+  --lh-lg: 28px;
+  --lh-xl: 32px;
+  --lh-2xl: 38px;
+  --lh-3xl: 46px;
+  --lh-4xl: 56px;
+  --lh-5xl: 72px;
+
+  /* ===================================================================
+     RADII — Ant 5 modern (rounded but reserved)
+     =================================================================== */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;   /* default — buttons, inputs, cards */
+  --radius-lg: 8px;
+  --radius-xl: 16px;
+  --radius-pill: 999px;
+
+  /* ===================================================================
+     SHADOWS — subtle, black-alpha, two-stop
+     =================================================================== */
+  --shadow-xs:  0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  --shadow-sm:  0 2px 4px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  --shadow-md:  0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 9px 28px 8px rgba(0, 0, 0, 0.05);
+  --shadow-lg:  0 12px 32px 0 rgba(0, 0, 0, 0.12), 0 6px 12px -4px rgba(0, 0, 0, 0.08);
+  --shadow-ring:0 0 0 3px rgba(255, 204, 0, 0.26);   /* focus ring on primary */
+
+  /* ===================================================================
+     SPACING — 4-pt scale
+     =================================================================== */
+  --space-0: 0;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+
+  /* ===================================================================
+     MOTION
+     =================================================================== */
+  --motion-fast:   0.1s;
+  --motion-mid:    0.2s;     /* Ant default */
+  --motion-slow:   0.3s;
+  --ease-out:  cubic-bezier(0.215, 0.61, 0.355, 1);     /* Ant easeOutQuint */
+  --ease-in-out: cubic-bezier(0.645, 0.045, 0.355, 1);
+  --ease-bezier: cubic-bezier(0.34, 0.69, 0.1, 1);
+
+  /* ===================================================================
+     LAYOUT
+     =================================================================== */
+  --layout-header-h: 64px;
+  --layout-sider-w: 256px;
+  --layout-content-pad: 24px;
+}
+
+/* =========================================================================
+   SEMANTIC TYPE CLASSES
+   ========================================================================= */
+.t-display {
+  font-family: var(--font-display);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-5xl);
+  line-height: var(--lh-5xl);
+  color: var(--color-text-heading);
+  letter-spacing: -0.02em;
+}
+.t-h1 {
+  font-family: var(--font-sans);
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-3xl);
+  line-height: var(--lh-2xl);
+  color: var(--color-text-heading);
+  letter-spacing: -0.01em;
+}
+.t-h2 {
+  font-family: var(--font-sans);
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-2xl);
+  line-height: var(--lh-xl);
+  color: var(--color-text-heading);
+  letter-spacing: -0.005em;
+}
+.t-h3 {
+  font-family: var(--font-sans);
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-xl);
+  line-height: var(--lh-xl);
+  color: var(--color-text-heading);
+}
+.t-h4 {
+  font-family: var(--font-sans);
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+  color: var(--color-text-heading);
+}
+.t-h5 {
+  font-family: var(--font-sans);
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-md);
+  line-height: var(--lh-md);
+  color: var(--color-text-heading);
+}
+.t-body {
+  font-family: var(--font-sans);
+  font-weight: var(--fw-regular);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  color: var(--color-text);
+}
+.t-body-lg {
+  font-family: var(--font-sans);
+  font-weight: var(--fw-regular);
+  font-size: var(--fs-md);
+  line-height: var(--lh-md);
+  color: var(--color-text);
+}
+.t-body-strong {
+  font-family: var(--font-sans);
+  font-weight: var(--fw-medium);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  color: var(--color-text);
+}
+.t-caption {
+  font-family: var(--font-sans);
+  font-weight: var(--fw-regular);
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  color: var(--color-text-secondary);
+}
+.t-label {
+  font-family: var(--font-sans);
+  font-weight: var(--fw-medium);
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.t-code, code, kbd, samp {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  color: var(--color-text);
+  background: var(--color-fill-tertiary);
+  padding: 0.1em 0.4em;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--color-border-secondary);
+}
+.t-link {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color var(--motion-mid) var(--ease-out);
+}
+.t-link:hover { color: var(--color-primary-hover); text-decoration: underline; }
+.t-link:active { color: var(--color-primary-active); }
+
+/* Element defaults (applied when using `.dbc-typography` scope) */
+.dbc-typography {
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+.dbc-typography h1 { font: var(--fw-semibold) var(--fs-3xl)/var(--lh-2xl) var(--font-sans); color: var(--color-text-heading); margin: 0 0 0.4em; letter-spacing: -0.01em; }
+.dbc-typography h2 { font: var(--fw-semibold) var(--fs-2xl)/var(--lh-xl) var(--font-sans); color: var(--color-text-heading); margin: 0 0 0.4em; letter-spacing: -0.005em; }
+.dbc-typography h3 { font: var(--fw-semibold) var(--fs-xl)/var(--lh-xl) var(--font-sans); color: var(--color-text-heading); margin: 0 0 0.4em; }
+.dbc-typography h4 { font: var(--fw-semibold) var(--fs-lg)/var(--lh-lg) var(--font-sans); color: var(--color-text-heading); margin: 0 0 0.4em; }
+.dbc-typography h5 { font: var(--fw-semibold) var(--fs-md)/var(--lh-md) var(--font-sans); color: var(--color-text-heading); margin: 0 0 0.4em; }
+.dbc-typography p { font: var(--fw-regular) var(--fs-sm)/var(--lh-sm) var(--font-sans); color: var(--color-text); margin: 0 0 1em; }
+.dbc-typography small { font-size: var(--fs-xs); line-height: var(--lh-xs); color: var(--color-text-secondary); }
+.dbc-typography a { color: var(--color-primary); text-decoration: none; }
+.dbc-typography a:hover { color: var(--color-primary-hover); text-decoration: underline; }
