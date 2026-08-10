@@ -8,6 +8,7 @@ import {
   type TestDesignerHistoryItem,
 } from '@/entities/agents/agent-execution.api';
 import { AGENTS_CATALOG, type AgentCatalogItem } from './agents.catalog';
+import { NexusMark } from '@/shell/NexusMark';
 
 type LiveExecution = {
   id: string;
@@ -85,7 +86,7 @@ function Desk({ station, onOpen }: { station: AgentStation; onOpen: () => void }
   return (
     <button type="button" className={`live-desk live-desk--${station.agent.number} is-${station.state}`} onClick={onOpen} aria-label={`Agent ${station.agent.number}, ${station.agent.shortName}: ${copy.label}`}>
       <span className="live-desk__bubble"><strong>{copy.label}</strong>{station.reaction || station.execution?.message || copy.activity}</span>
-      <span className="live-desk__table" aria-hidden="true"><i className="live-desk__screen"><b>{station.state === 'working' || station.state === 'collaborating' ? '···' : station.agent.number}</b></i><i className="live-desk__keyboard" /><i className="live-desk__mug" /></span>
+      <span className="live-desk__table" aria-hidden="true"><i className="live-desk__screen"><NexusMark size={15} /><b>{station.state === 'working' || station.state === 'collaborating' ? '···' : station.agent.number}</b></i><i className="live-desk__keyboard" /><i className="live-desk__mug" /></span>
       <PixelPerson station={station} />
       <span className="live-desk__label"><small>AGENT {station.agent.number}</small><strong>{station.agent.shortName}</strong><em>{copy.label}</em></span>
       {progress !== undefined && <span className="live-desk__progress"><i style={{ width: `${progress}%` }} /></span>}
@@ -154,14 +155,14 @@ export function LiveAgentOffice({ projectId, projectName }: { projectId: string;
   return (
     <section className="live-office-shell" aria-label="Sala de operações dos agents">
       <header className="live-office-header">
-        <div><span className="live-office-eyebrow"><i /> SALA DE OPERAÇÕES · AO VIVO</span><h1>Os Agents estão no escritório</h1><p>{projectName} · estados sincronizados a cada 4 segundos</p></div>
+        <div className="live-office-title"><span className="live-office-brand-mark"><NexusMark size={36} /></span><div><span className="live-office-eyebrow"><i /> RENAULT NEXO · OPERAÇÃO AO VIVO</span><h1>Os Agents estão no escritório</h1><p>{projectName} · estados sincronizados a cada 4 segundos</p></div></div>
         <div className="live-office-kpis"><span><small>Em atividade</small><strong>{activeCount}</strong></span><span><small>Pedem atenção</small><strong>{attentionCount}</strong></span><span><small>Conectados</small><strong>2 / {stations.length}</strong></span></div>
       </header>
       {error && <div className="live-office-error" role="status">{error}</div>}
       <div className="live-office-layout">
         <div className={`live-office-map${loading ? ' is-loading' : ''}`}>
           <div className="live-office-room live-office-room--focus"><span>ANÁLISE &amp; PLANEJAMENTO</span></div><div className="live-office-room live-office-room--lab"><span>LABORATÓRIO DE QA</span></div>
-          <div className="live-office-window"><i /><i /><i /></div><div className="live-office-board"><strong>SPRINT QA</strong><i /><i /><i /></div><div className="live-office-coffee"><i /><strong>CAFÉ</strong></div>
+          <div className="live-office-window"><i /><i /><i /></div><div className="live-office-board"><span><NexusMark size={20} /></span><strong>RENAULT<br />QUALITY LAB</strong><i /><i /><i /></div><div className="live-office-coffee"><i /><strong>CAFÉ · NEXO</strong></div>
           <div className="live-office-plant live-office-plant--one"><i /><i /><i /></div><div className="live-office-plant live-office-plant--two"><i /><i /><i /></div><div className="live-office-rug" aria-hidden="true" />
           {collaborationActive && <div className="live-office-collaboration" aria-label="Agent 1 e Agent 2 alinhando o requisito"><i /><span>ALINHAMENTO DO REQUISITO</span><i /></div>}
           {stations.map((station) => <Desk key={station.agent.id} station={station} onOpen={() => openStation(station)} />)}
