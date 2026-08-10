@@ -87,6 +87,23 @@ export interface AgentExecutionJob {
   error?: string;
 }
 
+export interface AgentExecutionHistoryItem {
+  id: string;
+  titulo: string | null;
+  status: AgentExecutionStatus;
+  phase: AgentExecutionPhase;
+  progress: number;
+  message: string;
+  error: string | null;
+  hasResult: boolean;
+  parcial: boolean;
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+  projeto: { id: string; nome: string; codigo: string };
+  actorUser: { id: string; nome: string; email: string };
+}
+
 export async function runUsAnalyser(input: RunUsAnalyserInput) {
   const { data } = await httpClient.post<UsAnalyserResult>('/agents/analisador-us/executar', input);
   return data;
@@ -99,5 +116,12 @@ export async function startUsAnalyser(input: RunUsAnalyserInput) {
 
 export async function getAgentExecution(id: string) {
   const { data } = await httpClient.get<AgentExecutionJob>(`/agents/execucoes/${id}`);
+  return data;
+}
+
+export async function listAgentExecutions(projetoId?: string) {
+  const { data } = await httpClient.get<AgentExecutionHistoryItem[]>('/agents/execucoes', {
+    params: projetoId ? { projetoId } : undefined,
+  });
   return data;
 }

@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { isAxiosError } from 'axios';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button, Icon, Textarea } from '@/design-system';
-import { getAgentExecution, startUsAnalyser, type AgentExecutionJob, type StructuredUsAnalysis, type UsAnalyserResult } from '@/entities/agents/agent-execution.api';
+import { getAgentExecution, listAgentExecutions, startUsAnalyser, type AgentExecutionHistoryItem, type AgentExecutionJob, type StructuredUsAnalysis, type UsAnalyserResult } from '@/entities/agents/agent-execution.api';
 import { projetoHooks } from '@/entities/projeto/projeto.hooks';
 import './agents-orchestration.css';
 
@@ -143,6 +143,14 @@ function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Não foi possível iniciar a análise.';
 }
 
+function executionStatusLabel(status: AgentExecutionHistoryItem['status'], parcial: boolean) {
+  if (status === 'completed') return 'Concluída';
+  if (status === 'failed' && parcial) return 'Parcial preservada';
+  if (status === 'failed') return 'Falhou';
+  if (status === 'processing') return 'Em processamento';
+  return 'Na fila';
+}
+
 function legacyAnalysis(title: string): StructuredUsAnalysis {
   return {
     requisito: { identificador: title || 'Não informado', titulo: title || 'Requisito funcional', resumo: 'Este resultado foi gerado antes da implantação do formato visual. O conteúdo integral permanece disponível em Relatório técnico.', modo: 'Não classificado', escopo: 'Não classificado', criteriosAceite: [] },
@@ -173,10 +181,25 @@ export function AgentUsAnalyserPage() {
   const [resultTab, setResultTab] = useState<ResultTab>('requisito');
   const [job, setJob] = useState<AgentExecutionJob | null>(null);
   const [processingOpen, setProcessingOpen] = useState(false);
+  const [history, setHistory] = useState<AgentExecutionHistoryItem[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const projectId = projectOverride || initialProjectId;
   const resultAnalysis = result?.analise ?? legacyAnalysis(result?.titulo ?? title);
   const jobId = job?.id;
   const jobStatus = job?.status;
+
+  const refreshHistory = useCallback(async () => {
+    setHistoryLoading(true);
+    try {
+      setHistory(await listAgentExecutions(projectId || undefined));
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [projectId]);
+
+  useEffect(() => {
+    void refreshHistory();
+  }, [refreshHistory]);
 
   useEffect(() => {
     const savedJobId = window.sessionStorage.getItem('nexo.agent1.executionId');
@@ -202,6 +225,7 @@ export function AgentUsAnalyserPage() {
           setResult(updated.result);
           setResultTab('requisito');
           setRunning(false);
+          void refreshHistory();
         } else if (updated.status === 'failed') {
           if (updated.result) {
             setResult(updated.result);
@@ -209,6 +233,7 @@ export function AgentUsAnalyserPage() {
           }
           setRunning(false);
           setError(updated.error || 'O agent não conseguiu concluir a análise.');
+          void refreshHistory();
         } else {
           timer = window.setTimeout(poll, 900);
         }
@@ -221,7 +246,7 @@ export function AgentUsAnalyserPage() {
       cancelled = true;
       if (timer) window.clearTimeout(timer);
     };
-  }, [jobId, jobStatus]);
+  }, [jobId, jobStatus, refreshHistory]);
 
   async function loadFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -254,9 +279,25 @@ export function AgentUsAnalyserPage() {
       setJob(startedJob);
       window.sessionStorage.setItem('nexo.agent1.executionId', startedJob.id);
       setProcessingOpen(true);
+      void refreshHistory();
     } catch (executionError) {
       setError(errorMessage(executionError));
       setRunning(false);
+    }
+  }
+
+  async function openHistoryItem(item: AgentExecutionHistoryItem) {
+    setError('');
+    try {
+      const savedJob = await getAgentExecution(item.id);
+      setJob(savedJob);
+      setResult(savedJob.result ?? null);
+      setResultTab('requisito');
+      setRunning(savedJob.status === 'queued' || savedJob.status === 'processing');
+      setProcessingOpen(savedJob.status === 'queued' || savedJob.status === 'processing');
+      window.sessionStorage.setItem('nexo.agent1.executionId', savedJob.id);
+    } catch (historyError) {
+      setError(errorMessage(historyError));
     }
   }
 
@@ -297,6 +338,22 @@ export function AgentUsAnalyserPage() {
           <ul><li><Icon name="folder" size={17} /><span><strong>Requisito reescrito</strong>Versão clara, organizada e testável para o PO.</span></li><li><Icon name="audit" size={17} /><span><strong>Gate de qualidade</strong>Coerência, completude e testabilidade.</span></li><li><Icon name="search" size={17} /><span><strong>Dúvidas de refinamento</strong>Perguntas vinculadas ao texto e risco mitigado.</span></li><li><Icon name="clipboardCheck" size={17} /><span><strong>Cenários de teste</strong>Happy path, negativos, bordas e rastreabilidade.</span></li><li><Icon name="info" size={17} /><span><strong>Decisões humanas</strong>Pontos que precisam de confirmação do PO.</span></li></ul>
         </aside>
       </div>
+
+      <section className="agent-history-card">
+        <header>
+          <div><span className="agent-history-icon"><Icon name="clock" size={19} /></span><span><small>RESULTADOS SALVOS NO BANCO</small><h2>Histórico de análises</h2><p>Reabra resultados completos, parciais ou acompanhe execuções em andamento.</p></span></div>
+          <button type="button" onClick={() => void refreshHistory()} disabled={historyLoading}>{historyLoading ? 'Atualizando...' : 'Atualizar histórico'}</button>
+        </header>
+        {history.length ? <div className="agent-history-list">{history.map((item) => (
+          <button type="button" className="agent-history-row" key={item.id} onClick={() => void openHistoryItem(item)}>
+            <span className={`agent-history-status is-${item.status}${item.parcial ? ' is-partial' : ''}`}><i />{executionStatusLabel(item.status, item.parcial)}</span>
+            <span className="agent-history-title"><strong>{item.titulo || 'Requisito funcional'}</strong><small>{item.projeto.nome} · {item.projeto.codigo}</small></span>
+            <span className="agent-history-owner"><small>Executado por</small><strong>{item.actorUser.nome}</strong></span>
+            <span className="agent-history-date"><strong>{new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(item.createdAt))}</strong><small>{item.hasResult ? 'Resultado disponível' : `${item.progress}% processado`}</small></span>
+            <span className="agent-history-open">Ver análise →</span>
+          </button>
+        ))}</div> : <div className="agent-history-empty"><Icon name="clock" size={23} /><strong>{historyLoading ? 'Carregando histórico...' : 'Nenhuma análise salva'}</strong><span>As próximas execuções aparecerão aqui automaticamente.</span></div>}
+      </section>
 
       {result && (
         <section className="agent-result-card" aria-live="polite">

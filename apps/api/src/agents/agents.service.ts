@@ -1,5 +1,6 @@
-import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException, type OnModuleInit } from '@nestjs/common';
 import { CopilotClient, type CopilotSession, type PermissionHandler } from '@github/copilot-sdk';
+import { Prisma, type AgentExecution } from '@prisma/client';
 import { existsSync, readFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { resolve } from 'node:path';
@@ -75,7 +76,11 @@ type AnalysisResult = {
 };
 type AnalysisJob = {
   id: string;
+  actorUserId: string;
   actorEmail: string;
+  projetoId: string;
+  titulo?: string;
+  requisito: string;
   status: ExecutionStatus;
   phase: ExecutionPhase;
   progress: number;
@@ -85,20 +90,44 @@ type AnalysisJob = {
   updatedAt: string;
   result?: AnalysisResult;
   error?: string;
+  startedAt?: string;
+  completedAt?: string;
 };
 
+type ExecutionActor = { userId: string; email: string };
+
 @Injectable()
-export class AgentsService {
+export class AgentsService implements OnModuleInit {
   private readonly jobs = new Map<string, AnalysisJob>();
+  private readonly persistTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private readonly persistChains = new Map<string, Promise<void>>();
+  private readonly executionPromises = new Map<string, Promise<void>>();
 
   constructor(private readonly prisma: PrismaService) {}
 
-  startUsAnalyser(dto: RunUsAnalyserDto, actorEmail: string) {
+  async onModuleInit() {
+    await this.prisma.agentExecution.updateMany({
+      where: { status: { in: ['queued', 'processing'] } },
+      data: {
+        status: 'failed',
+        phase: 'failed',
+        message: 'A execução foi interrompida pela reinicialização da API.',
+        error: 'A API foi reiniciada antes da conclusão da análise.',
+        completedAt: new Date(),
+      },
+    });
+  }
+
+  async startUsAnalyser(dto: RunUsAnalyserDto, actor: ExecutionActor) {
     this.pruneJobs();
     const now = new Date().toISOString();
     const job: AnalysisJob = {
       id: randomUUID(),
-      actorEmail,
+      actorUserId: actor.userId,
+      actorEmail: actor.email,
+      projetoId: dto.projetoId,
+      titulo: dto.titulo?.trim() || undefined,
+      requisito: dto.requisito,
       status: 'queued',
       phase: 'queued',
       progress: 3,
@@ -107,30 +136,84 @@ export class AgentsService {
       createdAt: now,
       updatedAt: now,
     };
+    await this.prisma.agentExecution.create({
+      data: {
+        id: job.id,
+        agent: AGENT_NAME,
+        provider: 'GitHub Copilot',
+        projetoId: job.projetoId,
+        actorUserId: job.actorUserId,
+        titulo: job.titulo,
+        requisito: job.requisito,
+        status: job.status,
+        phase: job.phase,
+        progress: job.progress,
+        message: job.message,
+      },
+    });
     this.jobs.set(job.id, job);
-    void this.executeJob(job, dto);
+    const execution = this.executeJob(job, dto);
+    this.executionPromises.set(job.id, execution);
+    void execution.finally(() => this.executionPromises.delete(job.id)).catch(() => undefined);
     return this.publicJob(job);
   }
 
-  getExecution(id: string, actorEmail: string) {
+  async getExecution(id: string, actorUserId: string) {
     const job = this.jobs.get(id);
-    if (!job || job.actorEmail !== actorEmail) throw new NotFoundException('Execução do agent não encontrada');
-    return this.publicJob(job);
+    if (job && job.actorUserId === actorUserId) return this.publicJob(job);
+
+    const saved = await this.prisma.agentExecution.findFirst({ where: { id, actorUserId } });
+    if (!saved) throw new NotFoundException('Execução do agent não encontrada');
+    return this.publicJob(this.jobFromRecord(saved));
   }
 
-  async runUsAnalyser(dto: RunUsAnalyserDto, actorEmail: string) {
-    return this.executeAnalysis(dto, actorEmail, () => undefined);
+  async listExecutions(actorUserId: string, projetoId?: string) {
+    const rows = await this.prisma.agentExecution.findMany({
+      where: { actorUserId, ...(projetoId ? { projetoId } : {}) },
+      orderBy: { createdAt: 'desc' },
+      take: 30,
+      select: {
+        id: true,
+        titulo: true,
+        status: true,
+        phase: true,
+        progress: true,
+        message: true,
+        error: true,
+        result: true,
+        createdAt: true,
+        updatedAt: true,
+        completedAt: true,
+        projeto: { select: { id: true, nome: true, codigo: true } },
+        actorUser: { select: { id: true, nome: true, email: true } },
+      },
+    });
+    return rows.map(({ result, ...row }) => ({
+      ...row,
+      hasResult: result !== null,
+      parcial: Boolean(result && typeof result === 'object' && !Array.isArray(result) && 'parcial' in result && result.parcial),
+    }));
+  }
+
+  async runUsAnalyser(dto: RunUsAnalyserDto, actor: ExecutionActor) {
+    const started = await this.startUsAnalyser(dto, actor);
+    await this.executionPromises.get(started.id);
+    const job = this.jobs.get(started.id);
+    if (job?.result) return job.result;
+    throw new InternalServerErrorException(job?.error || 'O agent não conseguiu produzir um resultado.');
   }
 
   private async executeJob(job: AnalysisJob, dto: RunUsAnalyserDto) {
     try {
       const result = await this.executeAnalysis(dto, job.actorEmail, (phase, progress, message, delta) => {
         job.status = 'processing';
+        job.startedAt ??= new Date().toISOString();
         job.phase = phase;
         job.progress = progress;
         job.message = message;
         if (delta) job.partialContent += delta;
         job.updatedAt = new Date().toISOString();
+        this.schedulePersistence(job);
       });
       job.result = result;
       job.status = 'completed';
@@ -138,6 +221,7 @@ export class AgentsService {
       job.progress = 100;
       job.message = 'Análise concluída.';
       job.updatedAt = new Date().toISOString();
+      job.completedAt = job.updatedAt;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Falha desconhecida no GitHub Copilot';
       job.status = 'failed';
@@ -148,6 +232,9 @@ export class AgentsService {
         job.result = await this.buildPartialResult(dto, job.partialContent, job.createdAt, errorMessage).catch(() => undefined);
       }
       job.updatedAt = new Date().toISOString();
+      job.completedAt = job.updatedAt;
+    } finally {
+      await this.flushPersistence(job);
     }
   }
 
@@ -258,6 +345,67 @@ export class AgentsService {
     if (content.includes('"regrasNegocio"')) return 'rules';
     if (content.includes('"gate"')) return 'gate';
     return content.length > 0 ? 'requirement' : 'copilot';
+  }
+
+  private schedulePersistence(job: AnalysisJob) {
+    if (this.persistTimers.has(job.id)) return;
+    const timer = setTimeout(() => {
+      this.persistTimers.delete(job.id);
+      void this.enqueuePersistence(job).catch(() => undefined);
+    }, 750);
+    this.persistTimers.set(job.id, timer);
+  }
+
+  private async flushPersistence(job: AnalysisJob) {
+    const timer = this.persistTimers.get(job.id);
+    if (timer) clearTimeout(timer);
+    this.persistTimers.delete(job.id);
+    await this.enqueuePersistence(job);
+  }
+
+  private enqueuePersistence(job: AnalysisJob) {
+    const snapshot = {
+      status: job.status,
+      phase: job.phase,
+      progress: job.progress,
+      message: job.message,
+      partialContent: job.partialContent,
+      result: job.result ? JSON.parse(JSON.stringify(job.result)) as Prisma.InputJsonValue : Prisma.DbNull,
+      error: job.error ?? null,
+      startedAt: job.startedAt ? new Date(job.startedAt) : null,
+      completedAt: job.completedAt ? new Date(job.completedAt) : null,
+    };
+    const previous = this.persistChains.get(job.id) ?? Promise.resolve();
+    const next = previous.catch(() => undefined).then(async () => {
+      await this.prisma.agentExecution.update({ where: { id: job.id }, data: snapshot });
+    });
+    this.persistChains.set(job.id, next);
+    return next;
+  }
+
+  private jobFromRecord(record: AgentExecution): AnalysisJob {
+    const result = record.result && typeof record.result === 'object' && !Array.isArray(record.result)
+      ? record.result as unknown as AnalysisResult
+      : undefined;
+    return {
+      id: record.id,
+      actorUserId: record.actorUserId,
+      actorEmail: '',
+      projetoId: record.projetoId,
+      titulo: record.titulo ?? undefined,
+      requisito: record.requisito,
+      status: record.status as ExecutionStatus,
+      phase: record.phase as ExecutionPhase,
+      progress: record.progress,
+      message: record.message,
+      partialContent: record.partialContent,
+      createdAt: record.createdAt.toISOString(),
+      updatedAt: record.updatedAt.toISOString(),
+      result,
+      error: record.error ?? undefined,
+      startedAt: record.startedAt?.toISOString(),
+      completedAt: record.completedAt?.toISOString(),
+    };
   }
 
   private publicJob(job: AnalysisJob) {
