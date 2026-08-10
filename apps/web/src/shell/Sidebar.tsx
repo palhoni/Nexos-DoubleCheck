@@ -10,6 +10,7 @@ interface NavItem {
   label: string;
   icon: IconName;
   matchPrefix?: boolean;
+  disabled?: boolean;
 }
 
 const SETUP_NAV: NavItem[] = [
@@ -27,14 +28,14 @@ const OPERACIONAL_NAV: NavItem[] = [
 ];
 
 const AGENT_WORKSPACE_NAV: NavItem[] = [
-  { path: '/agents?area=necessidades', label: 'Necessidades', icon: 'clipboardCheck' },
-  { path: '/agents?area=descoberta', label: 'Descoberta', icon: 'search' },
-  { path: '/agents?area=conhecimento', label: 'Conhecimento', icon: 'folder' },
-  { path: '/agents?area=impacto', label: 'Impacto', icon: 'chart' },
-  { path: '/agents?area=planejamento', label: 'Planejamento', icon: 'clock' },
-  { path: '/agents?area=qualidade', label: 'Qualidade', icon: 'audit' },
-  { path: '/agents?area=valor', label: 'Valor', icon: 'zap' },
-  { path: '/agents?area=administracao', label: 'Administração', icon: 'info' },
+  { path: '/agents?area=necessidades', label: 'Necessidades', icon: 'clipboardCheck', disabled: true },
+  { path: '/agents?area=descoberta', label: 'Descoberta', icon: 'search', disabled: true },
+  { path: '/agents?area=conhecimento', label: 'Conhecimento', icon: 'folder', disabled: true },
+  { path: '/agents?area=impacto', label: 'Impacto', icon: 'chart', disabled: true },
+  { path: '/agents?area=planejamento', label: 'Planejamento', icon: 'clock', disabled: true },
+  { path: '/agents?area=qualidade', label: 'Qualidade', icon: 'audit', disabled: true },
+  { path: '/agents?area=valor', label: 'Valor', icon: 'zap', disabled: true },
+  { path: '/agents?area=administracao', label: 'Administração', icon: 'info', disabled: true },
 ];
 
 interface ProjectNavItem {
@@ -203,12 +204,14 @@ export function Sidebar({ onLogout }: SidebarProps) {
       <button
         type="button"
         key={item.path}
-        className={`dbc-nav-item renault-nav-item${active ? ' dbc-nav-item-active' : ''}`}
-        title={collapsed ? item.label : undefined}
-        onClick={() => navigate(item.path)}
+        className={`dbc-nav-item renault-nav-item${active ? ' dbc-nav-item-active' : ''}${item.disabled ? ' is-disabled' : ''}`}
+        title={item.disabled ? `${item.label} — Em breve` : collapsed ? item.label : undefined}
+        onClick={() => !item.disabled && navigate(item.path)}
+        disabled={item.disabled}
+        aria-disabled={item.disabled || undefined}
       >
         <Icon name={item.icon} size={18} width={1.7} />
-        {!collapsed && <span>{item.label}</span>}
+        {!collapsed && <><span>{item.label}</span>{item.disabled && <small className="renault-nav-coming-soon">Em breve</small>}</>}
       </button>
     );
   }
