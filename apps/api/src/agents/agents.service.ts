@@ -1,6 +1,7 @@
-import { Injectable, InternalServerErrorException, NotFoundException, type OnModuleInit } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException, type OnModuleInit } from '@nestjs/common';
 import { CopilotClient, type CopilotSession, type PermissionHandler } from '@github/copilot-sdk';
 import { Prisma, type AgentExecution } from '@prisma/client';
+import { PDFParse } from 'pdf-parse';
 import { existsSync, readFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { resolve } from 'node:path';
@@ -116,6 +117,41 @@ export class AgentsService implements OnModuleInit {
         completedAt: new Date(),
       },
     });
+  }
+
+  async extractRequirementFile(file?: Express.Multer.File) {
+    if (!file) throw new BadRequestException('Selecione um arquivo PDF exportado pelo Jira.');
+    const isPdf = file.mimetype === 'application/pdf' || file.originalname.toLowerCase().endsWith('.pdf');
+    if (!isPdf) throw new BadRequestException('Formato não suportado. Envie um arquivo PDF exportado pelo Jira.');
+
+    const parser = new PDFParse({ data: file.buffer });
+    try {
+      const extracted = await parser.getText();
+      const texto = extracted.text
+        .replace(/^\s*--\s*\d+\s+of\s+\d+\s*--\s*$/gim, '')
+        .replace(/^https?:\/\/jira\.dt\.renault\.com\/\S+\s*$/gim, '')
+        .replace(/\r\n/g, '\n')
+        .replace(/[ \t]+\n/g, '\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+      if (texto.length < 20) {
+        throw new BadRequestException('O PDF não contém texto pesquisável. Exporte a issue pelo Jira em vez de usar uma imagem digitalizada.');
+      }
+      const identifier = file.originalname.match(/#?([A-Z][A-Z0-9]{1,15}-\d+)/i)?.[1]
+        ?? texto.match(/\b([A-Z][A-Z0-9]{1,15}-\d+)\b/i)?.[1];
+      return {
+        nome: file.originalname,
+        texto: texto.slice(0, 120_000),
+        paginas: extracted.total,
+        tituloSugerido: identifier?.toUpperCase() ?? file.originalname.replace(/\.pdf$/i, ''),
+        truncado: texto.length > 120_000,
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) throw error;
+      throw new BadRequestException(`Não foi possível ler o PDF exportado pelo Jira: ${error instanceof Error ? error.message : 'arquivo inválido'}`);
+    } finally {
+      await parser.destroy();
+    }
   }
 
   async startUsAnalyser(dto: RunUsAnalyserDto, actor: ExecutionActor) {
@@ -384,9 +420,19 @@ export class AgentsService implements OnModuleInit {
   }
 
   private jobFromRecord(record: AgentExecution): AnalysisJob {
-    const result = record.result && typeof record.result === 'object' && !Array.isArray(record.result)
+    let result = record.result && typeof record.result === 'object' && !Array.isArray(record.result)
       ? record.result as unknown as AnalysisResult
       : undefined;
+    if (result?.analise) {
+      result = {
+        ...result,
+        analise: this.parseStructuredAnalysis(result.resultado, {
+          projetoId: record.projetoId,
+          titulo: record.titulo ?? undefined,
+          requisito: record.requisito,
+        }),
+      };
+    }
     return {
       id: record.id,
       actorUserId: record.actorUserId,
@@ -464,7 +510,7 @@ export class AgentsService implements OnModuleInit {
       }
     }
 
-    return {
+    return this.mergePartialSections(raw, dto, {
       requisito: {
         identificador: dto.titulo?.trim() || 'Não informado',
         titulo: dto.titulo?.trim() || 'Requisito funcional',
@@ -497,11 +543,14 @@ export class AgentsService implements OnModuleInit {
       perguntasRefinamento: [],
       cenariosTeste: [],
       riscosAdicionais: [],
-    };
+    });
   }
 
   private parsePartialStructuredAnalysis(raw: string, dto: RunUsAnalyserDto): StructuredAnalysis {
-    const base = this.parseStructuredAnalysis(raw, dto);
+    return this.parseStructuredAnalysis(raw, dto);
+  }
+
+  private mergePartialSections(raw: string, dto: RunUsAnalyserDto, base: StructuredAnalysis): StructuredAnalysis {
     const repairedRaw = raw
       .replace(/(:\s*)\\"/g, '$1"')
       .replace(/\\"(?=\s*[,}\]])/g, '"');
@@ -634,10 +683,39 @@ export class AgentsService implements OnModuleInit {
     };
   }
 
+  private cleanAgentText(value: string) {
+    return value
+      .replace(/^\s*```(?:\w+)?\s*|\s*```\s*$/g, '')
+      .replace(/^\s{0,3}#{1,6}\s+/gm, '')
+      .replace(/^\s*[-*+]\s+/gm, '')
+      .replace(/\*\*|__|`/g, '')
+      .replace(/\r\n/g, '\n')
+      .replace(/[ \t]+\n/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+  }
+
+  private sanitizeAgentValue<T>(value: T): T {
+    if (typeof value === 'string') return this.cleanAgentText(value) as T;
+    if (Array.isArray(value)) return value.map((item) => this.sanitizeAgentValue(item)) as T;
+    if (value && typeof value === 'object') {
+      return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, this.sanitizeAgentValue(item)])) as T;
+    }
+    return value;
+  }
+
+  private normalizeIdentifier(value: string | undefined, fallback?: string) {
+    const cleaned = this.cleanAgentText(value || fallback || 'Não informado');
+    const ticket = cleaned.match(/\b[A-Z][A-Z0-9]{1,15}-\d+\b/i)?.[0];
+    if (ticket) return ticket.toUpperCase();
+    return cleaned.replace(/^identificador\s*:?\s*/i, '').trim() || 'Não informado';
+  }
+
   private normalizeStructuredAnalysis(parsed: StructuredAnalysis, dto: RunUsAnalyserDto): StructuredAnalysis {
+    parsed = this.sanitizeAgentValue(parsed);
     return {
       requisito: {
-        identificador: parsed.requisito.identificador || dto.titulo?.trim() || 'Não informado',
+        identificador: this.normalizeIdentifier(parsed.requisito.identificador, dto.titulo?.trim()),
         titulo: parsed.requisito.titulo || dto.titulo?.trim() || 'Requisito funcional',
         resumo: parsed.requisito.resumo || 'Resumo não informado pelo agent.',
         modo: parsed.requisito.modo || 'Não classificado',
@@ -712,6 +790,9 @@ RESTRIÇÕES DESTA EXECUÇÃO:
 - Preserve inferências, contradições e lacunas como premissas ou pendências; nunca as apresente como fatos confirmados.
 - Sua resposta deve ser SOMENTE um objeto JSON válido, sem Markdown, comentários ou blocos de código.
 - Preencha todas as propriedades do contrato abaixo. Use arrays vazios quando não houver itens.
+- Respeite rigorosamente a ordem das propriedades do contrato: requisito, requisitoReescrito, gate, regrasNegocio, perguntasRefinamento, cenariosTeste e riscosAdicionais.
+- Priorize requisito, reescrita e gate. Se a resposta estiver próxima do limite, reduza a quantidade de cenários e finalize um JSON válido; nunca interrompa no meio de um objeto.
+- Seja objetivo nas descrições para que a resposta completa permaneça abaixo do limite do provider.
 
 CONTRATO JSON OBRIGATÓRIO:
 {
@@ -743,7 +824,7 @@ CONTRATO JSON OBRIGATÓRIO:
     "findings": [{ "categoria": "string", "severidade": "Critical | High | Medium | Low", "trecho": "string", "recomendacao": "string" }],
     "decisoesHumanas": ["string"]
   },
-  "regrasNegocio": [{ "id": "RN01", "regra": "string", "origem": "trecho do requisito", "status": "Confirmada | Inferida | Requer confirmação", "risco": "string" }],
+  "regrasNegocio": [{ "id": "RN01", "regra": "string", "origem": "trecho do requisito", "status": "Confirmada | Inferida | Requer confirmação", "risco": "Alto | Médio | Baixo - descrição objetiva do impacto" }],
   "perguntasRefinamento": [{ "id": "Q01", "pergunta": "string", "trechoOrigem": "string", "riscoMitigado": "string", "criticidade": "Alta | Média | Baixa" }],
   "cenariosTeste": [{ "id": "TC-B001 ou TC-F001", "titulo": "string", "tipo": "Funcional | Borda | Negativo | Segurança | Concorrência | Visual", "execucao": "AUTOMAÇÃO | MANUAL | AMBOS", "escopo": "Backend | Frontend", "dado": "string", "quando": "string", "entao": "string", "criterioRelacionado": "string" }],
   "riscosAdicionais": ["string"]

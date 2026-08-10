@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type ClipboardEvent } from 'react';
 import { isAxiosError } from 'axios';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button, Icon, Textarea } from '@/design-system';
-import { getAgentExecution, listAgentExecutions, startUsAnalyser, type AgentExecutionHistoryItem, type AgentExecutionJob, type StructuredUsAnalysis, type UsAnalyserResult } from '@/entities/agents/agent-execution.api';
+import { extractRequirementFile, getAgentExecution, listAgentExecutions, startUsAnalyser, type AgentExecutionHistoryItem, type AgentExecutionJob, type StructuredUsAnalysis, type UsAnalyserResult } from '@/entities/agents/agent-execution.api';
 import { projetoHooks } from '@/entities/projeto/projeto.hooks';
 import './agents-orchestration.css';
 
 const MAX_FILE_SIZE = 1_000_000;
+const MAX_PDF_SIZE = 10_000_000;
 type ResultTab = 'requisito' | 'gate' | 'perguntas' | 'cenarios' | 'regras' | 'tecnico';
 
 const RESULT_TABS: Array<{ id: ResultTab; label: string; icon: 'folder' | 'audit' | 'search' | 'clipboardCheck' | 'info' }> = [
@@ -31,6 +32,30 @@ function GateScore({ label, score, description }: { label: string; score: number
       <p>{description}</p>
     </article>
   );
+}
+
+function RiskIndicator({ value }: { value: string }) {
+  const risk = String(value ?? '').trim();
+  const match = risk.match(/^(?:(?:risco|risk|severidade|severity|impacto|impact)\s*(?:[:=-]\s*)?)?(critical|cr[ií]tic[oa]|high|alto|alta|medium|moderate|m[eé]dio|m[eé]dia|moderado|moderada|low|baixo|baixa)\b\s*(?:[-–—:]\s*)?(.*)$/i);
+  const normalizedLevel = (match?.[1] ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const normalizedRisk = risk.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const inferredTone = /lgpd|privacidade|compliance|legal|seguranca|fraude|vazamento|dados pessoais|perda de dados|indisponibilidade|fora do sorteio|bloquei/.test(normalizedRisk)
+    ? 'high'
+    : /falha|falhar|incorret|inconsist|integracao|duplic|atras|qualidade|experiencia|confus|contagem/.test(normalizedRisk)
+      ? 'medium'
+      : 'low';
+  const tone = normalizedLevel
+    ? normalizedLevel.startsWith('critic') || normalizedLevel === 'high' || normalizedLevel.startsWith('alt')
+      ? 'high'
+      : normalizedLevel === 'medium' || normalizedLevel.startsWith('moder') || normalizedLevel.startsWith('medi')
+        ? 'medium'
+        : 'low'
+    : inferredTone;
+  const label = tone === 'high' ? 'Alto' : tone === 'medium' ? 'Médio' : 'Baixo';
+  const description = match?.[2]?.trim() || risk || 'O agent não forneceu uma descrição para este risco.';
+  const inferred = !match;
+
+  return <span className="agent-risk"><em className={`agent-risk__tag is-${tone}${inferred ? ' is-inferred' : ''}`} title={inferred ? 'Severidade inferida a partir da descrição do risco' : `Severidade informada pelo agent: ${match[1]}`}>{label}</em><span>{description}</span></span>;
 }
 
 const PROCESS_PHASES = [
@@ -124,7 +149,7 @@ function StructuredResult({ analysis, raw, activeTab }: { analysis: StructuredUs
   ) : <EmptyAnalysisSection text="Nenhum cenário foi estruturado nesta resposta." />;
 
   if (activeTab === 'regras') return analysis.regrasNegocio.length ? (
-    <div className="agent-result-section"><div className="agent-rules-list">{analysis.regrasNegocio.map((rule) => <article key={rule.id}><header><b>{rule.id}</b><span className={`rule-status is-${rule.status.toLowerCase().replaceAll(' ', '-').replace('ç', 'c').replace('ã', 'a')}`}>{rule.status}</span></header><h3>{rule.regra}</h3><dl><div><dt>Origem no requisito</dt><dd>{rule.origem}</dd></div><div><dt>Risco relacionado</dt><dd>{rule.risco}</dd></div></dl></article>)}</div></div>
+    <div className="agent-result-section"><div className="agent-rules-list">{analysis.regrasNegocio.map((rule) => <article key={rule.id}><header><b>{rule.id}</b><span className={`rule-status is-${rule.status.toLowerCase().replaceAll(' ', '-').replace('ç', 'c').replace('ã', 'a')}`}>{rule.status}</span></header><h3>{rule.regra}</h3><dl><div><dt>Origem no requisito</dt><dd>{rule.origem}</dd></div><div className="agent-rule-risk"><dt>Risco relacionado</dt><dd><RiskIndicator value={rule.risco} /></dd></div></dl></article>)}</div></div>
   ) : <EmptyAnalysisSection text="Nenhuma regra de negócio explícita ou inferida foi identificada." />;
 
   return <pre className="agent-technical-result">{raw}</pre>;
@@ -136,6 +161,60 @@ function normalizeRequirementFile(content: string) {
   return (parsed.body.textContent ?? '').replace(/\u00a0/g, ' ').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 
+const JIRA_SECTION_TITLES = new Set([
+  'Descrição', 'Contexto', 'Objetivo', 'Tracking', 'Taxonomia', 'Comentários', 'Regras:',
+  'Pontos em aberto:', 'Objetivos do framing', 'Ideia inicial:', '2 Round de ideias:', 'OLD',
+]);
+
+function formatRequirementText(content: string) {
+  const decoded = new DOMParser().parseFromString(content, 'text/html').documentElement.textContent ?? content;
+  const lines = decoded.replace(/\u00a0/g, ' ').replace(/\r\n/g, '\n').split('\n');
+  const formatted: string[] = [];
+  for (const originalLine of lines) {
+    let line = originalLine.trim();
+    if (!line) {
+      if (formatted.at(-1) !== '') formatted.push('');
+      continue;
+    }
+    if (/^https?:\/\/jira\.dt\.renault\.com\/si\/jira\.issueviews:/i.test(line)) continue;
+    if (/^\d{1,2}\/\d{1,2}\/\d{2,4},\s*\d{1,2}:\d{2}\s+\[#?[A-Z]+-\d+]/i.test(line)) continue;
+    if (/^\d+\/\d+$/.test(line) || /^--\s*\d+\s+of\s+\d+\s*--$/i.test(line)) continue;
+    if (/^-{10,}$/.test(line)) {
+      formatted.push('', '## Conteúdo anterior', '');
+      continue;
+    }
+    line = line.split(/\t+/).map((part) => part.trim()).filter(Boolean).join(' | ');
+    const issueHeader = formatted.length === 0
+      ? line.match(/^(\[#?[A-Z]+-\d+]\s+.*?)\s+Criado:\s*(.*?)\s+Atualizado:\s*(.+)$/i)
+      : null;
+    if (issueHeader) {
+      formatted.push(`# ${issueHeader[1]}`, `Criado: ${issueHeader[2]}`, `Atualizado: ${issueHeader[3]}`, '');
+      continue;
+    }
+    if (formatted.length === 0 && /^\[#?[A-Z]+-\d+]/i.test(line)) line = `# ${line}`;
+    else if (JIRA_SECTION_TITLES.has(line)) line = `## ${line.replace(/:$/, '')}`;
+    if (line.startsWith('## ') && formatted.at(-1) !== '') formatted.push('');
+    formatted.push(line);
+    if (line.startsWith('## ')) formatted.push('');
+  }
+  return formatted.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+function RequirementPreview({ content }: { content: string }) {
+  const lines = content.split('\n');
+  return <div className="agent-requirement-preview">{lines.map((line, index) => {
+    const key = `${index}-${line.slice(0, 24)}`;
+    if (!line) return <div className="agent-preview-space" key={key} />;
+    if (line.startsWith('# ')) return <h3 key={key}>{line.slice(2)}</h3>;
+    if (line.startsWith('## ')) return <h4 key={key}>{line.slice(3)}</h4>;
+    if (line.includes(' | ')) return <div className="agent-preview-table-row" key={key}>{line.split(' | ').map((cell, cellIndex) => <span key={`${key}-${cellIndex}`}>{cell}</span>)}</div>;
+    const metadata = line.match(/^([^:]{2,45}):\s*(.+)$/);
+    if (metadata && !/^https?:/i.test(line)) return <div className="agent-preview-metadata" key={key}><strong>{metadata[1]}</strong><span>{metadata[2]}</span></div>;
+    if (/^https?:\/\//i.test(line)) return <p className="agent-preview-link" key={key}>{line}</p>;
+    return <p key={key}>{line}</p>;
+  })}</div>;
+}
+
 function errorMessage(error: unknown) {
   if (isAxiosError<{ message?: string }>(error)) {
     return error.response?.data?.message ?? 'A API não respondeu à solicitação.';
@@ -144,8 +223,8 @@ function errorMessage(error: unknown) {
 }
 
 function executionStatusLabel(status: AgentExecutionHistoryItem['status'], parcial: boolean) {
+  if (parcial) return 'Parcial preservada';
   if (status === 'completed') return 'Concluída';
-  if (status === 'failed' && parcial) return 'Parcial preservada';
   if (status === 'failed') return 'Falhou';
   if (status === 'processing') return 'Em processamento';
   return 'Na fila';
@@ -174,7 +253,9 @@ export function AgentUsAnalyserPage() {
   const [projectOverride, setProjectOverride] = useState('');
   const [title, setTitle] = useState('');
   const [requirement, setRequirement] = useState('');
+  const [requirementView, setRequirementView] = useState<'edit' | 'preview'>('edit');
   const [fileName, setFileName] = useState('');
+  const [extractingFile, setExtractingFile] = useState(false);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<UsAnalyserResult | null>(null);
@@ -253,20 +334,39 @@ export function AgentUsAnalyserPage() {
     if (!file) return;
     setError('');
     setResult(null);
-    if (file.size > MAX_FILE_SIZE) {
-      setError('O arquivo excede 1 MB. Cole somente o texto relevante do requisito.');
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    const sizeLimit = isPdf ? MAX_PDF_SIZE : MAX_FILE_SIZE;
+    if (file.size > sizeLimit) {
+      setError(`O arquivo excede ${isPdf ? '10 MB' : '1 MB'}.`);
       event.target.value = '';
       return;
     }
+    setExtractingFile(true);
     try {
-      const content = normalizeRequirementFile(await file.text());
+      const extracted = isPdf ? await extractRequirementFile(file) : null;
+      const content = extracted?.texto ?? normalizeRequirementFile(await file.text());
       if (!content) throw new Error('O arquivo não contém texto legível.');
-      setRequirement(content.slice(0, 120_000));
+      setRequirement(formatRequirementText(content).slice(0, 120_000));
+      setRequirementView('preview');
       setFileName(file.name);
-      if (!title) setTitle(file.name.replace(/\.[^.]+$/, ''));
+      if (!title) setTitle(extracted?.tituloSugerido ?? file.name.replace(/\.[^.]+$/, ''));
+      if (extracted?.truncado) setError('O PDF ultrapassou 120.000 caracteres e foi limitado para a análise.');
     } catch (fileError) {
       setError(errorMessage(fileError));
+    } finally {
+      setExtractingFile(false);
     }
+  }
+
+  function pasteRequirement(event: ClipboardEvent<HTMLTextAreaElement>) {
+    const pasted = event.clipboardData.getData('text/plain');
+    if (!pasted) return;
+    event.preventDefault();
+    const target = event.currentTarget;
+    const before = requirement.slice(0, target.selectionStart);
+    const after = requirement.slice(target.selectionEnd);
+    setRequirement(`${before}${formatRequirementText(pasted)}${after}`.slice(0, 120_000));
+    setResult(null);
   }
 
   async function execute() {
@@ -321,12 +421,16 @@ export function AgentUsAnalyserPage() {
           <label className="agent-field"><span>Título ou ID da US</span><input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Ex.: CDS-12288" maxLength={180} disabled={running} /></label>
 
           <div className="agent-upload-row">
-            <input ref={fileInputRef} className="agent-file-input" type="file" accept=".doc,.txt,.md,.html,.htm" onChange={loadFile} />
-            <Button variant="secondary" icon="folder" onClick={() => fileInputRef.current?.click()} disabled={running}>Carregar requisito</Button>
-            <span>{fileName || 'DOC, TXT, MD ou HTML · até 1 MB'}</span>
+            <input ref={fileInputRef} className="agent-file-input" type="file" accept=".pdf,.doc,.txt,.md,.html,.htm" onChange={loadFile} />
+            <Button variant="secondary" icon="folder" loading={extractingFile} onClick={() => fileInputRef.current?.click()} disabled={running || extractingFile}>{extractingFile ? 'Lendo PDF do Jira...' : 'Carregar requisito'}</Button>
+            <span>{fileName || 'PDF do Jira até 10 MB · DOC, TXT, MD ou HTML até 1 MB'}</span>
           </div>
 
-          <label className="agent-field"><span>Requisito funcional <b>*</b></span><Textarea rows={16} value={requirement} onChange={(event) => { setRequirement(event.target.value); setResult(null); }} placeholder="Cole aqui a descrição, critérios de aceite, regras e referências do requisito..." disabled={running} /><small>{requirement.length.toLocaleString('pt-BR')} / 120.000 caracteres</small></label>
+          <div className="agent-field agent-requirement-editor">
+            <div className="agent-requirement-editor__head"><span>Requisito funcional <b>*</b></span><div><button type="button" className={requirementView === 'edit' ? 'is-active' : ''} onClick={() => setRequirementView('edit')}>Editar</button><button type="button" className={requirementView === 'preview' ? 'is-active' : ''} onClick={() => setRequirementView('preview')} disabled={!requirement.trim()}>Visualização organizada</button><button type="button" onClick={() => { setRequirement(formatRequirementText(requirement)); setRequirementView('preview'); }} disabled={!requirement.trim() || running}>Organizar texto</button></div></div>
+            {requirementView === 'edit' ? <Textarea rows={18} value={requirement} onPaste={pasteRequirement} onChange={(event) => { setRequirement(event.target.value); setResult(null); }} placeholder="Cole aqui a descrição, critérios de aceite, regras e referências do requisito..." disabled={running} /> : <RequirementPreview content={requirement} />}
+            <small>{requirement.length.toLocaleString('pt-BR')} / 120.000 caracteres</small>
+          </div>
 
           {error && <div className="agent-execution-error" role="alert"><Icon name="info" size={18} /><span>{error}</span></div>}
           <Button variant="primary" size="lg" block loading={running} disabled={!projectId || requirement.trim().length < 20} onClick={execute}>{running ? 'Analisando com GitHub Copilot...' : 'Iniciar análise do requisito'}</Button>

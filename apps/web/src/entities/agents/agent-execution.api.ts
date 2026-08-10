@@ -6,6 +6,14 @@ export interface RunUsAnalyserInput {
   requisito: string;
 }
 
+export interface ExtractedRequirementFile {
+  nome: string;
+  texto: string;
+  paginas: number;
+  tituloSugerido: string;
+  truncado: boolean;
+}
+
 export interface UsAnalyserResult {
   agent: string;
   provider: 'GitHub Copilot';
@@ -123,5 +131,12 @@ export async function listAgentExecutions(projetoId?: string) {
   const { data } = await httpClient.get<AgentExecutionHistoryItem[]>('/agents/execucoes', {
     params: projetoId ? { projetoId } : undefined,
   });
+  return data;
+}
+
+export async function extractRequirementFile(file: File) {
+  const body = new FormData();
+  body.append('arquivo', file);
+  const { data } = await httpClient.post<ExtractedRequirementFile>('/agents/requisitos/extrair', body);
   return data;
 }
