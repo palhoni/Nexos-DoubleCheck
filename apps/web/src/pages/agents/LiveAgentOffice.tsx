@@ -22,12 +22,13 @@ type LiveExecution = {
   projectId: string;
 };
 
-type StationState = 'working' | 'collaborating' | 'queued' | 'done' | 'attention' | 'idle' | 'offline';
+type StationState = 'working' | 'supporting' | 'collaborating' | 'queued' | 'done' | 'attention' | 'idle' | 'offline';
 type AgentStation = { agent: AgentCatalogItem; state: StationState; execution?: LiveExecution; reaction?: string; displayProgress?: number; collaborationExecutionId?: string };
 
 const CONNECTED_AGENTS = new Set(['agent1-analisador-us', 'agent2-desenhista-testes']);
 const STATE_COPY: Record<StationState, { label: string; activity: string }> = {
   working: { label: 'Trabalhando', activity: 'Processando agora' },
+  supporting: { label: 'Apoiando QA', activity: 'Contribuindo com o desenho dos testes' },
   collaborating: { label: 'Em alinhamento', activity: 'Discutindo o requisito com o Agent 1' },
   queued: { label: 'Na fila', activity: 'Preparando contexto' },
   done: { label: 'Entregou', activity: 'Última tarefa concluída' },
@@ -88,6 +89,17 @@ function meetingMoment(progress: number, now: number) {
   return moments[Math.floor(now / 6000) % moments.length];
 }
 
+const SUPPORT_MESSAGES: Record<number, string> = {
+  1: 'Validando aderência à OS refinada.',
+  3: 'Revisando impacto nos fluxos de tela.',
+  4: 'Conferindo contratos e integrações.',
+  5: 'Preparando a estratégia de execução.',
+  6: 'Mapeando riscos e pontos de falha.',
+  7: 'Organizando evidências e rastreabilidade.',
+  8: 'Preparando critérios para o reteste.',
+  9: 'Auditando cobertura e guardrails.',
+};
+
 function relativeTime(value: string, now: number) {
   const seconds = Math.max(0, Math.round((now - new Date(value).getTime()) / 1000));
   if (seconds < 10) return 'agora';
@@ -107,9 +119,9 @@ function Desk({ station, onOpen }: { station: AgentStation; onOpen: () => void }
   const copy = STATE_COPY[station.state];
   const progress = station.displayProgress ?? station.execution?.progress;
   return (
-    <button type="button" className={`live-desk live-desk--${station.agent.number} is-${station.state}`} onClick={onOpen} aria-label={`Agent ${station.agent.number}, ${station.agent.shortName}: ${copy.label}`}>
+    <button type="button" className={`live-desk live-desk--${station.agent.number} is-${station.state}${station.reaction ? ' is-reacting' : ''}`} onClick={onOpen} aria-label={`Agent ${station.agent.number}, ${station.agent.shortName}: ${copy.label}`}>
       <span className="live-desk__bubble"><strong>{copy.label}</strong>{station.reaction || station.execution?.message || copy.activity}</span>
-      <span className="live-desk__table" aria-hidden="true"><i className="live-desk__screen"><NexusMark size={15} /><b>{station.state === 'working' || station.state === 'collaborating' ? '···' : station.agent.number}</b></i><i className="live-desk__keyboard" /><i className="live-desk__mug" /></span>
+      <span className="live-desk__table" aria-hidden="true"><i className="live-desk__screen"><NexusMark size={15} /><b>{station.state === 'working' || station.state === 'supporting' || station.state === 'collaborating' ? '···' : station.agent.number}</b></i><i className="live-desk__keyboard" /><i className="live-desk__mug" /></span>
       <PixelPerson station={station} />
       <span className="live-desk__label"><small>AGENT {station.agent.number}</small><strong>{station.agent.shortName}</strong><em>{copy.label}</em></span>
       {progress !== undefined && <span className="live-desk__progress"><i style={{ width: `${progress}%` }} /></span>}
@@ -178,18 +190,25 @@ export function LiveAgentOffice({ projectId, projectName }: { projectId: string;
   }, []);
 
   const analyzerExecution = executions.find((item) => item.agentId === 'agent1-analisador-us');
+  const designerExecution = executions.find((item) => item.agentId === 'agent2-desenhista-testes');
   const analyzerIsActive = analyzerExecution?.status === 'processing' || analyzerExecution?.status === 'queued';
   const refinementMeetingActive = analyzerExecution?.status === 'processing';
+  const designerProductionActive = designerExecution?.status === 'processing';
+  const supportAgentNumbers = [1, 3, 4, 9, 5, 6, 7, 8];
+  const reactingSupportAgent = supportAgentNumbers[Math.floor(now / 5000) % supportAgentNumbers.length];
   const stations = useMemo<AgentStation[]>(() => AGENTS_CATALOG.map((agent) => {
-    if (!CONNECTED_AGENTS.has(agent.id)) return { agent, state: 'offline' };
     const execution = executions.find((item) => item.agentId === agent.id);
+    if (designerProductionActive && agent.id !== 'agent2-desenhista-testes' && designerExecution) {
+      return { agent, execution, state: 'supporting', reaction: agent.number === reactingSupportAgent ? SUPPORT_MESSAGES[agent.number] : undefined, displayProgress: designerExecution.progress };
+    }
+    if (!CONNECTED_AGENTS.has(agent.id)) return { agent, state: 'offline' };
     if (agent.id === 'agent2-desenhista-testes' && analyzerIsActive && analyzerExecution && execution?.status !== 'processing' && execution?.status !== 'queued') {
       return { agent, execution, state: 'collaborating', reaction: designerReaction(analyzerExecution.progress, now), displayProgress: analyzerExecution.progress, collaborationExecutionId: analyzerExecution.id };
     }
     return { agent, execution, state: executionState(execution) };
-  }), [analyzerExecution, analyzerIsActive, executions, now]);
+  }), [analyzerExecution, analyzerIsActive, designerExecution, designerProductionActive, executions, now, reactingSupportAgent]);
   const collaborationActive = stations.some((item) => item.state === 'collaborating');
-  const activeCount = refinementMeetingActive ? stations.length : stations.filter((item) => item.state === 'working' || item.state === 'collaborating' || item.state === 'queued').length;
+  const activeCount = refinementMeetingActive || designerProductionActive ? stations.length : stations.filter((item) => item.state === 'working' || item.state === 'collaborating' || item.state === 'queued').length;
   const attentionCount = stations.filter((item) => item.state === 'attention').length;
 
   function openStation(station: AgentStation) {
@@ -209,7 +228,7 @@ export function LiveAgentOffice({ projectId, projectName }: { projectId: string;
     <section className="live-office-shell" aria-label="Sala de operações dos agents">
       <header className="live-office-header">
         <div className="live-office-title"><span className="live-office-brand-mark"><NexusMark size={36} /></span><div><span className="live-office-eyebrow"><i /> RENAULT NEXO · OPERAÇÃO AO VIVO</span><h1>Os Agents estão no escritório</h1><p>{projectName} · estados sincronizados a cada 4 segundos</p></div></div>
-        <div className="live-office-kpis"><span><small>{refinementMeetingActive ? 'Em reunião' : 'Em atividade'}</small><strong>{activeCount}</strong></span><span><small>Pedem atenção</small><strong>{attentionCount}</strong></span><span><small>Conectados</small><strong>2 / {stations.length}</strong></span></div>
+        <div className="live-office-kpis"><span><small>{refinementMeetingActive ? 'Em reunião' : designerProductionActive ? 'Nos postos' : 'Em atividade'}</small><strong>{activeCount}</strong></span><span><small>Pedem atenção</small><strong>{attentionCount}</strong></span><span><small>Conectados</small><strong>2 / {stations.length}</strong></span></div>
       </header>
       {error && <div className="live-office-error" role="status">{error}</div>}
       <div className="live-office-layout">
@@ -226,7 +245,7 @@ export function LiveAgentOffice({ projectId, projectName }: { projectId: string;
           <header><span><i /> ATIVIDADE REAL</span><time>{new Date(now).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</time></header>
           <div className="live-office-feed__body">
             {!loading && executions.length === 0 && <div className="live-office-empty"><span>☕</span><strong>Escritório tranquilo</strong><p>Nenhuma execução neste projeto. Os Agents conectados estão disponíveis.</p></div>}
-            {refinementMeetingActive && analyzerExecution ? <button type="button" className="live-feed-item is-meeting" onClick={() => navigate(`/agents/analises/${analyzerExecution.id}`)}><span className="live-feed-item__number">9</span><span className="live-feed-item__copy"><strong>Todos os Agents</strong><b>Reunião de refinamento da OS</b><small>{meetingMoment(analyzerExecution.progress, now).agenda}</small></span><span className="live-feed-item__meta"><em>Em reunião</em><time>agora</time></span><span className="live-feed-item__progress"><i style={{ width: `${analyzerExecution.progress}%` }} /></span></button> : collaborationActive && analyzerExecution && <button type="button" className="live-feed-item is-collaborating" onClick={() => navigate(`/agents/analises/${analyzerExecution.id}`)}><span className="live-feed-item__number">1↔2</span><span className="live-feed-item__copy"><strong>Analisador + Desenhista</strong><b>Discussão do requisito em andamento</b><small>{designerReaction(analyzerExecution.progress, now)}</small></span><span className="live-feed-item__meta"><em>Alinhando</em><time>agora</time></span><span className="live-feed-item__progress"><i style={{ width: `${analyzerExecution.progress}%` }} /></span></button>}
+            {refinementMeetingActive && analyzerExecution ? <button type="button" className="live-feed-item is-meeting" onClick={() => navigate(`/agents/analises/${analyzerExecution.id}`)}><span className="live-feed-item__number">9</span><span className="live-feed-item__copy"><strong>Todos os Agents</strong><b>Reunião de refinamento da OS</b><small>{meetingMoment(analyzerExecution.progress, now).agenda}</small></span><span className="live-feed-item__meta"><em>Em reunião</em><time>agora</time></span><span className="live-feed-item__progress"><i style={{ width: `${analyzerExecution.progress}%` }} /></span></button> : designerProductionActive && designerExecution ? <button type="button" className="live-feed-item is-production" onClick={() => navigate('/agents/planos-teste')}><span className="live-feed-item__number">9</span><span className="live-feed-item__copy"><strong>Operação coletiva de QA</strong><b>Todos nos postos de trabalho</b><small>Agent 2 coordenando o desenho dos testes</small></span><span className="live-feed-item__meta"><em>Produzindo</em><time>agora</time></span><span className="live-feed-item__progress"><i style={{ width: `${designerExecution.progress}%` }} /></span></button> : collaborationActive && analyzerExecution && <button type="button" className="live-feed-item is-collaborating" onClick={() => navigate(`/agents/analises/${analyzerExecution.id}`)}><span className="live-feed-item__number">1↔2</span><span className="live-feed-item__copy"><strong>Analisador + Desenhista</strong><b>Discussão do requisito em andamento</b><small>{designerReaction(analyzerExecution.progress, now)}</small></span><span className="live-feed-item__meta"><em>Alinhando</em><time>agora</time></span><span className="live-feed-item__progress"><i style={{ width: `${analyzerExecution.progress}%` }} /></span></button>}
             {executions.slice(0, 8).map((execution) => {
               const agent = AGENTS_CATALOG.find((item) => item.id === execution.agentId)!;
               const state = executionState(execution);
