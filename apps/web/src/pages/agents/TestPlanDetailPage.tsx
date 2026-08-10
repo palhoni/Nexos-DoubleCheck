@@ -1,12 +1,25 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Icon } from '@/design-system';
-import { getTestDesignerExecution, type StructuredTestPlan, type TestDesignerJob } from '@/entities/agents/agent-execution.api';
+import { getTestDesignerExecution, type StructuredTestPlan, type TestDesignerJob, type TestPlanMonitoring } from '@/entities/agents/agent-execution.api';
 import './agents-orchestration.css';
 
 type PlanTab = 'resumo' | 'cobertura' | 'rastreabilidade' | 'gaps' | 'casos' | 'checklist' | 'tecnico';
 
 function severityClass(value: string) { const normalized = value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); return normalized.startsWith('critic') || normalized.startsWith('alt') ? 'high' : normalized.startsWith('medi') ? 'medium' : 'low'; }
+function numberLabel(value?: number) { return value === undefined ? 'Não informado' : new Intl.NumberFormat('pt-BR').format(value); }
+
+function MonitoringSummary({ data }: { data: TestPlanMonitoring }) {
+  return <div className="test-plan-monitoring">
+    <div><span>Término do modelo</span><strong className={data.finishReason === 'length' ? 'is-invalid' : data.finishReason === 'stop' ? 'is-valid' : ''}>{data.finishReason || 'Não informado'}</strong></div>
+    <div><span>JSON</span><strong className={data.jsonValid ? 'is-valid' : 'is-invalid'}>{data.jsonValid ? 'Válido' : 'Inválido'}</strong></div>
+    <div><span>Contrato</span><strong className={data.contractValid ? 'is-valid' : 'is-invalid'}>{data.contractValid ? 'Completo' : 'Incompleto'}</strong></div>
+    <div><span>Tokens entrada / saída</span><strong>{numberLabel(data.inputTokens)} / {numberLabel(data.outputTokens)}</strong></div>
+    <div><span>Casos detectados / estruturados</span><strong>{data.detected.cases} / {data.structured.cases}</strong></div>
+    <div><span>Modelo</span><strong title={data.model}>{data.model || 'Não informado'}</strong></div>
+    {data.validationErrors.length > 0 && <div className="test-plan-validation-errors"><strong>Problemas encontrados na resposta</strong><ul>{data.validationErrors.map((error, index) => <li key={`${index}-${error}`}>{error}</li>)}</ul></div>}
+  </div>;
+}
 
 function PlanContent({ plan, tab, raw }: { plan: StructuredTestPlan; tab: PlanTab; raw: string }) {
   if (tab === 'resumo') return <div className="test-plan-section"><div className="test-plan-kpis"><div><span>Cobertura</span><strong>{plan.totais.requisitos ? Math.round((plan.totais.cobertos / plan.totais.requisitos) * 100) : 0}%</strong></div><div><span>Requisitos</span><strong>{plan.totais.requisitos}</strong></div><div><span>Gaps</span><strong>{plan.totais.gaps}</strong></div><div><span>Casos recomendados</span><strong>{plan.totais.casosRecomendados}</strong></div><div><span>Bloqueadores</span><strong>{plan.totais.bloqueadores}</strong></div></div><article className="test-plan-strategy"><small>ESTRATÉGIA RECOMENDADA</small><h2>{plan.resumo.titulo}</h2><p>{plan.resumo.estrategia}</p><div><span>{plan.resumo.escopo}</span><strong>{plan.resumo.status}</strong></div></article></div>;
@@ -26,5 +39,5 @@ export function TestPlanDetailPage() {
   if (!job?.result) return <div className="us-analysis-loading"><Icon name="spinner" size={25} /><strong>Carregando plano de testes...</strong></div>;
   const { result } = job; const { plano } = result;
   const tabs: Array<[PlanTab, string, number?]> = [['resumo', 'Visão geral'], ['cobertura', 'Cobertura', plano.cobertura.length], ['rastreabilidade', 'Rastreabilidade', plano.rastreabilidade.length], ['gaps', 'Gaps', plano.gaps.length], ['casos', 'Casos recomendados', plano.casosRecomendados.length], ['checklist', 'Checklist']];
-  return <div className="test-plan-page"><header className="test-plan-header"><button type="button" onClick={() => navigate('/agents/planos-teste')}>← Todos os planos</button><div><span><Icon name="chart" size={24} /></span><div><small>PLANO DE TESTES · AGENT 2</small><h1>{plano.resumo.usId}</h1><p>{plano.resumo.titulo} · {result.projeto.nome}</p></div></div><aside><Button variant="secondary" onClick={() => navigator.clipboard.writeText(result.resultado)}>Copiar plano</Button><Button variant="primary" onClick={() => navigate(`/agents/desenhista-testes/${result.sourceExecutionId}`)}>Gerar nova versão</Button></aside></header>{result.parcial && <div className="agent-partial-warning"><Icon name="info" size={17} /><span><strong>Plano parcial preservado</strong>{result.motivoInterrupcao}</span></div>}<section className="agent-result-card test-plan-result"><nav className="agent-result-tabs">{tabs.map(([id, label, count]) => <button type="button" className={tab === id ? 'is-active' : ''} key={id} onClick={() => setTab(id)}>{label}{count !== undefined && <b>{count}</b>}</button>)}<button type="button" className={tab === 'tecnico' ? 'is-active is-technical' : 'is-technical'} onClick={() => setTab('tecnico')}>Relatório técnico</button></nav><PlanContent plan={plano} tab={tab} raw={result.resultado} /></section></div>;
+  return <div className="test-plan-page"><header className="test-plan-header"><button type="button" onClick={() => navigate('/agents/planos-teste')}>← Todos os planos</button><div><span><Icon name="chart" size={24} /></span><div><small>PLANO DE TESTES · AGENT 2</small><h1>{plano.resumo.usId}</h1><p>{plano.resumo.titulo} · {result.projeto.nome}</p></div></div><aside><Button variant="secondary" onClick={() => navigator.clipboard.writeText(result.resultado)}>Copiar plano</Button><Button variant="primary" onClick={() => navigate(`/agents/desenhista-testes/${result.sourceExecutionId}`)}>Gerar nova versão</Button></aside></header>{result.parcial && <div className="agent-partial-warning"><Icon name="info" size={17} /><span><strong>{job.phase === 'truncated' ? 'Saída truncada preservada' : 'Saída inválida preservada'}</strong>{result.motivoInterrupcao}</span></div>}<section className="agent-result-card test-plan-result"><nav className="agent-result-tabs">{tabs.map(([id, label, count]) => <button type="button" className={tab === id ? 'is-active' : ''} key={id} onClick={() => setTab(id)}>{label}{count !== undefined && <b>{count}</b>}</button>)}<button type="button" className={tab === 'tecnico' ? 'is-active is-technical' : 'is-technical'} onClick={() => setTab('tecnico')}>Relatório técnico</button></nav><MonitoringSummary data={result.monitoramento} /><PlanContent plan={plano} tab={tab} raw={result.resultado} /></section></div>;
 }

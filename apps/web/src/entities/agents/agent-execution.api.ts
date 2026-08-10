@@ -124,6 +124,29 @@ export interface StructuredTestPlan {
   totais: { requisitos: number; cobertos: number; gaps: number; casosRecomendados: number; bloqueadores: number; frontend: number };
 }
 
+export interface TestPlanMonitoring {
+  model?: string;
+  finishReason?: string;
+  inputTokens?: number;
+  outputTokens?: number;
+  providerDurationMs?: number;
+  requestId?: string;
+  serviceRequestId?: string;
+  streamedCharacters: number;
+  finalCharacters: number;
+  streamedBytes?: number;
+  lastChunkAt?: string;
+  finalReceivedAt?: string;
+  idleAborted: boolean;
+  contextTruncations: number;
+  modelFailure?: string;
+  jsonValid: boolean;
+  contractValid: boolean;
+  validationErrors: string[];
+  detected: { gaps: number; cases: number; blockers: number };
+  structured: { gaps: number; cases: number; blockers: number; frontend: number };
+}
+
 export interface TestDesignerResult {
   agent: 'agent2-desenhista-testes';
   provider: 'GitHub Copilot';
@@ -132,6 +155,7 @@ export interface TestDesignerResult {
   titulo: string;
   resultado: string;
   plano: StructuredTestPlan;
+  monitoramento: TestPlanMonitoring;
   duracaoMs: number;
   executadoEm: string;
   parcial?: boolean;
@@ -146,7 +170,7 @@ export interface TestDesignerJob {
   message: string;
   createdAt: string;
   updatedAt: string;
-  live: { characters: number; gaps: number; cases: number; blockers: number };
+  live: { characters: number; gaps: number; cases: number; blockers: number; lastChunkAt?: string; model?: string; inputTokens?: number; outputTokens?: number; finishReason?: string };
   result?: TestDesignerResult;
   error?: string;
 }
