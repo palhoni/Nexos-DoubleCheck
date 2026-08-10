@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Icon } from '@/design-system';
-import { getTestDesignerExecution, type StructuredTestPlan, type TestDesignerJob, type TestPlanMonitoring } from '@/entities/agents/agent-execution.api';
+import { getTestDesignerExecution, startTestDesigner, type StructuredTestPlan, type TestDesignerJob, type TestPlanMonitoring } from '@/entities/agents/agent-execution.api';
 import './agents-orchestration.css';
 
 type PlanTab = 'resumo' | 'cobertura' | 'rastreabilidade' | 'gaps' | 'casos' | 'checklist' | 'tecnico';
@@ -34,10 +34,35 @@ function PlanContent({ plan, tab, raw }: { plan: StructuredTestPlan; tab: PlanTa
 export function TestPlanDetailPage() {
   const { planExecutionId = '' } = useParams(); const navigate = useNavigate();
   const [job, setJob] = useState<TestDesignerJob | null>(null); const [tab, setTab] = useState<PlanTab>('resumo'); const [error, setError] = useState('');
-  useEffect(() => { getTestDesignerExecution(planExecutionId).then(setJob).catch(() => setError('Não foi possível carregar este plano de testes.')); }, [planExecutionId]);
+  const [retryJob, setRetryJob] = useState<TestDesignerJob | null>(null); const [retryStarting, setRetryStarting] = useState(false); const [retryError, setRetryError] = useState('');
+  useEffect(() => { setJob(null); setError(''); setRetryError(''); getTestDesignerExecution(planExecutionId).then(setJob).catch(() => setError('Não foi possível carregar este plano de testes.')); }, [planExecutionId]);
+  useEffect(() => {
+    if (!retryJob || retryJob.status === 'completed' || retryJob.status === 'failed') return undefined;
+    let cancelled = false; let timer: number | undefined;
+    const poll = async () => {
+      try {
+        const updated = await getTestDesignerExecution(retryJob.id);
+        if (cancelled) return;
+        setRetryJob(updated);
+        if (updated.result) { setRetryJob(null); navigate(`/agents/planos-teste/${updated.id}`, { replace: true }); }
+        else if (updated.status === 'failed') { setRetryError(updated.error || 'A reexecução não pôde ser concluída.'); setRetryJob(null); }
+        else timer = window.setTimeout(poll, 900);
+      } catch { if (!cancelled) timer = window.setTimeout(poll, 1800); }
+    };
+    timer = window.setTimeout(poll, 600);
+    return () => { cancelled = true; if (timer) window.clearTimeout(timer); };
+  }, [retryJob?.id, retryJob?.status, navigate]);
+  async function retry(sourceExecutionId: string) {
+    if (retryStarting || retryJob) return;
+    setRetryStarting(true); setRetryError('');
+    try { setRetryJob(await startTestDesigner(sourceExecutionId)); }
+    catch { setRetryError('Não foi possível iniciar uma nova execução deste plano.'); }
+    finally { setRetryStarting(false); }
+  }
   if (error) return <div className="test-plan-page"><div className="agent-execution-error">{error}</div></div>;
   if (!job?.result) return <div className="us-analysis-loading"><Icon name="spinner" size={25} /><strong>Carregando plano de testes...</strong></div>;
   const { result } = job; const { plano } = result;
+  const canRetry = job.phase === 'truncated' || job.phase === 'invalid-output' || Boolean(result.parcial && !result.monitoramento.contractValid);
   const tabs: Array<[PlanTab, string, number?]> = [['resumo', 'Visão geral'], ['cobertura', 'Cobertura', plano.cobertura.length], ['rastreabilidade', 'Rastreabilidade', plano.rastreabilidade.length], ['gaps', 'Gaps', plano.gaps.length], ['casos', 'Casos recomendados', plano.casosRecomendados.length], ['checklist', 'Checklist']];
-  return <div className="test-plan-page"><header className="test-plan-header"><button type="button" onClick={() => navigate('/agents/planos-teste')}>← Todos os planos</button><div><span><Icon name="chart" size={24} /></span><div><small>PLANO DE TESTES · AGENT 2</small><h1>{plano.resumo.usId}</h1><p>{plano.resumo.titulo} · {result.projeto.nome}</p></div></div><aside><Button variant="secondary" onClick={() => navigator.clipboard.writeText(result.resultado)}>Copiar plano</Button><Button variant="primary" onClick={() => navigate(`/agents/desenhista-testes/${result.sourceExecutionId}`)}>Gerar nova versão</Button></aside></header>{result.parcial && <div className="agent-partial-warning"><Icon name="info" size={17} /><span><strong>{job.phase === 'truncated' ? 'Saída truncada preservada' : 'Saída inválida preservada'}</strong>{result.motivoInterrupcao}</span></div>}<section className="agent-result-card test-plan-result"><nav className="agent-result-tabs">{tabs.map(([id, label, count]) => <button type="button" className={tab === id ? 'is-active' : ''} key={id} onClick={() => setTab(id)}>{label}{count !== undefined && <b>{count}</b>}</button>)}<button type="button" className={tab === 'tecnico' ? 'is-active is-technical' : 'is-technical'} onClick={() => setTab('tecnico')}>Relatório técnico</button></nav><MonitoringSummary data={result.monitoramento} /><PlanContent plan={plano} tab={tab} raw={result.resultado} /></section></div>;
+  return <div className="test-plan-page"><header className="test-plan-header"><button type="button" onClick={() => navigate('/agents/planos-teste')}>← Todos os planos</button><div><span><Icon name="chart" size={24} /></span><div><small>PLANO DE TESTES · AGENT 2</small><h1>{plano.resumo.usId}</h1><p>{plano.resumo.titulo} · {result.projeto.nome}</p></div></div><aside><Button variant="secondary" onClick={() => navigator.clipboard.writeText(result.resultado)}>Copiar plano</Button>{canRetry && <Button variant="primary" onClick={() => void retry(result.sourceExecutionId)} disabled={retryStarting || Boolean(retryJob)}>{retryStarting ? 'Iniciando...' : retryJob ? 'Reexecutando...' : 'Reexecutar plano'}</Button>}<Button variant={canRetry ? 'secondary' : 'primary'} onClick={() => navigate(`/agents/desenhista-testes/${result.sourceExecutionId}`)}>Gerar nova versão</Button></aside></header>{result.parcial && <div className="agent-partial-warning"><Icon name="info" size={17} /><span><strong>{job.phase === 'truncated' ? 'Saída truncada preservada' : 'Saída inválida preservada'}</strong>{result.motivoInterrupcao}</span></div>}{(retryStarting || retryJob) && <div className="agent-retry-progress" role="status" aria-live="polite"><Icon name="spinner" size={17} /><span><strong>Reexecutando o plano</strong>{retryJob ? `${retryJob.message} · ${retryJob.progress}%` : 'Iniciando uma nova execução...'}</span></div>}{retryError && <div className="agent-execution-error"><Icon name="info" size={17} /><span>{retryError}</span></div>}<section className="agent-result-card test-plan-result"><nav className="agent-result-tabs">{tabs.map(([id, label, count]) => <button type="button" className={tab === id ? 'is-active' : ''} key={id} onClick={() => setTab(id)}>{label}{count !== undefined && <b>{count}</b>}</button>)}<button type="button" className={tab === 'tecnico' ? 'is-active is-technical' : 'is-technical'} onClick={() => setTab('tecnico')}>Relatório técnico</button></nav><MonitoringSummary data={result.monitoramento} /><PlanContent plan={plano} tab={tab} raw={result.resultado} /></section></div>;
 }
