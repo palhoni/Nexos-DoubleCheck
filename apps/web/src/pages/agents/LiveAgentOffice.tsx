@@ -65,6 +65,29 @@ function designerReaction(progress: number, now: number) {
   return reactions[Math.floor(now / 6000) % reactions.length];
 }
 
+function meetingMoment(progress: number, now: number) {
+  const moments = progress < 25
+    ? [
+        { agent: 1, text: 'Vamos alinhar objetivo, contexto e resultado esperado.', agenda: 'Contexto da OS' },
+        { agent: 3, text: 'Qual jornada do usuário precisamos observar?', agenda: 'Contexto da OS' },
+      ]
+    : progress < 50
+      ? [
+          { agent: 4, text: 'Quais integrações e dependências participam do fluxo?', agenda: 'Dependências e regras' },
+          { agent: 9, text: 'Há alguma premissa que ainda precisa de aprovação?', agenda: 'Dependências e regras' },
+        ]
+      : progress < 75
+        ? [
+            { agent: 2, text: 'Esse critério permite comprovar o resultado?', agenda: 'Critérios e cobertura' },
+            { agent: 6, text: 'Onde estão os riscos e comportamentos de borda?', agenda: 'Critérios e cobertura' },
+          ]
+        : [
+            { agent: 7, text: 'Vou registrar as decisões e pendências da reunião.', agenda: 'Decisões e próximos passos' },
+            { agent: 8, text: 'Fechamos o entendimento para seguir com segurança?', agenda: 'Decisões e próximos passos' },
+          ];
+  return moments[Math.floor(now / 6000) % moments.length];
+}
+
 function relativeTime(value: string, now: number) {
   const seconds = Math.max(0, Math.round((now - new Date(value).getTime()) / 1000));
   if (seconds < 10) return 'agora';
@@ -91,6 +114,35 @@ function Desk({ station, onOpen }: { station: AgentStation; onOpen: () => void }
       <span className="live-desk__label"><small>AGENT {station.agent.number}</small><strong>{station.agent.shortName}</strong><em>{copy.label}</em></span>
       {progress !== undefined && <span className="live-desk__progress"><i style={{ width: `${progress}%` }} /></span>}
     </button>
+  );
+}
+
+function RefinementMeeting({ execution, now }: { execution: LiveExecution; now: number }) {
+  const moment = meetingMoment(execution.progress, now);
+  return (
+    <section className="live-meeting" role="status" aria-label={`Reunião de refinamento de ${execution.title}`}>
+      <header className="live-meeting__header">
+        <span className="live-meeting__mark"><NexusMark size={24} /></span>
+        <span><small>SALA DE REFINAMENTO · RENAULT NEXO</small><strong>{execution.title}</strong></span>
+        <em><i /> REUNIÃO EM ANDAMENTO</em>
+      </header>
+      <div className="live-meeting__stage">
+        <div className="live-meeting__screen"><small>PAUTA ATUAL</small><strong>{moment.agenda}</strong><span>{execution.message}</span></div>
+        <div className="live-meeting__table" aria-hidden="true"><NexusMark size={38} /><span><i /><i /><i /></span></div>
+        {AGENTS_CATALOG.map((agent) => (
+          <div key={agent.id} className={`live-meeting-seat live-meeting-seat--${agent.number}${moment.agent === agent.number ? ' is-speaking' : ''}`}>
+            {moment.agent === agent.number && <span className="live-meeting-seat__bubble">{moment.text}</span>}
+            <span className="live-meeting-person" aria-hidden="true"><i className="live-meeting-person__chair" /><i className="live-meeting-person__body" /><i className="live-meeting-person__head" /><i className="live-meeting-person__hair" /></span>
+            <span className="live-meeting-seat__label"><small>AGENT {agent.number}</small><strong>{agent.shortName}</strong></span>
+          </div>
+        ))}
+      </div>
+      <footer className="live-meeting__footer">
+        <span><i /> Todos os 9 Agents presentes</span>
+        <div><i style={{ width: `${execution.progress}%` }} /></div>
+        <strong>{execution.progress}%</strong>
+      </footer>
+    </section>
   );
 }
 
@@ -127,6 +179,7 @@ export function LiveAgentOffice({ projectId, projectName }: { projectId: string;
 
   const analyzerExecution = executions.find((item) => item.agentId === 'agent1-analisador-us');
   const analyzerIsActive = analyzerExecution?.status === 'processing' || analyzerExecution?.status === 'queued';
+  const refinementMeetingActive = analyzerExecution?.status === 'processing';
   const stations = useMemo<AgentStation[]>(() => AGENTS_CATALOG.map((agent) => {
     if (!CONNECTED_AGENTS.has(agent.id)) return { agent, state: 'offline' };
     const execution = executions.find((item) => item.agentId === agent.id);
@@ -136,7 +189,7 @@ export function LiveAgentOffice({ projectId, projectName }: { projectId: string;
     return { agent, execution, state: executionState(execution) };
   }), [analyzerExecution, analyzerIsActive, executions, now]);
   const collaborationActive = stations.some((item) => item.state === 'collaborating');
-  const activeCount = stations.filter((item) => item.state === 'working' || item.state === 'collaborating' || item.state === 'queued').length;
+  const activeCount = refinementMeetingActive ? stations.length : stations.filter((item) => item.state === 'working' || item.state === 'collaborating' || item.state === 'queued').length;
   const attentionCount = stations.filter((item) => item.state === 'attention').length;
 
   function openStation(station: AgentStation) {
@@ -156,23 +209,24 @@ export function LiveAgentOffice({ projectId, projectName }: { projectId: string;
     <section className="live-office-shell" aria-label="Sala de operações dos agents">
       <header className="live-office-header">
         <div className="live-office-title"><span className="live-office-brand-mark"><NexusMark size={36} /></span><div><span className="live-office-eyebrow"><i /> RENAULT NEXO · OPERAÇÃO AO VIVO</span><h1>Os Agents estão no escritório</h1><p>{projectName} · estados sincronizados a cada 4 segundos</p></div></div>
-        <div className="live-office-kpis"><span><small>Em atividade</small><strong>{activeCount}</strong></span><span><small>Pedem atenção</small><strong>{attentionCount}</strong></span><span><small>Conectados</small><strong>2 / {stations.length}</strong></span></div>
+        <div className="live-office-kpis"><span><small>{refinementMeetingActive ? 'Em reunião' : 'Em atividade'}</small><strong>{activeCount}</strong></span><span><small>Pedem atenção</small><strong>{attentionCount}</strong></span><span><small>Conectados</small><strong>2 / {stations.length}</strong></span></div>
       </header>
       {error && <div className="live-office-error" role="status">{error}</div>}
       <div className="live-office-layout">
-        <div className={`live-office-map${loading ? ' is-loading' : ''}`}>
+        <div className={`live-office-map${loading ? ' is-loading' : ''}${refinementMeetingActive ? ' is-meeting' : ''}`}>
           <div className="live-office-room live-office-room--focus"><span>ANÁLISE &amp; PLANEJAMENTO</span></div><div className="live-office-room live-office-room--lab"><span>LABORATÓRIO DE QA</span></div>
           <div className="live-office-window"><i /><i /><i /></div><div className="live-office-board"><span><NexusMark size={20} /></span><strong>RENAULT<br />QUALITY LAB</strong><i /><i /><i /></div><div className="live-office-coffee"><i /><strong>CAFÉ · NEXO</strong></div>
           <div className="live-office-plant live-office-plant--one"><i /><i /><i /></div><div className="live-office-plant live-office-plant--two"><i /><i /><i /></div><div className="live-office-rug" aria-hidden="true" />
           {collaborationActive && <div className="live-office-collaboration" aria-label="Agent 1 e Agent 2 alinhando o requisito"><i /><span>ALINHAMENTO DO REQUISITO</span><i /></div>}
           {stations.map((station) => <Desk key={station.agent.id} station={station} onOpen={() => openStation(station)} />)}
+          {refinementMeetingActive && analyzerExecution && <RefinementMeeting execution={analyzerExecution} now={now} />}
           <div className="live-office-map-legend"><span><i className="is-working" /> trabalhando</span><span><i className="is-collaborating" /> em alinhamento</span><span><i className="is-idle" /> disponível</span><span><i className="is-attention" /> atenção</span><span><i className="is-offline" /> não conectado</span></div>
         </div>
         <aside className="live-office-feed">
           <header><span><i /> ATIVIDADE REAL</span><time>{new Date(now).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</time></header>
           <div className="live-office-feed__body">
             {!loading && executions.length === 0 && <div className="live-office-empty"><span>☕</span><strong>Escritório tranquilo</strong><p>Nenhuma execução neste projeto. Os Agents conectados estão disponíveis.</p></div>}
-            {collaborationActive && analyzerExecution && <button type="button" className="live-feed-item is-collaborating" onClick={() => navigate(`/agents/analises/${analyzerExecution.id}`)}><span className="live-feed-item__number">1↔2</span><span className="live-feed-item__copy"><strong>Analisador + Desenhista</strong><b>Discussão do requisito em andamento</b><small>{designerReaction(analyzerExecution.progress, now)}</small></span><span className="live-feed-item__meta"><em>Alinhando</em><time>agora</time></span><span className="live-feed-item__progress"><i style={{ width: `${analyzerExecution.progress}%` }} /></span></button>}
+            {refinementMeetingActive && analyzerExecution ? <button type="button" className="live-feed-item is-meeting" onClick={() => navigate(`/agents/analises/${analyzerExecution.id}`)}><span className="live-feed-item__number">9</span><span className="live-feed-item__copy"><strong>Todos os Agents</strong><b>Reunião de refinamento da OS</b><small>{meetingMoment(analyzerExecution.progress, now).agenda}</small></span><span className="live-feed-item__meta"><em>Em reunião</em><time>agora</time></span><span className="live-feed-item__progress"><i style={{ width: `${analyzerExecution.progress}%` }} /></span></button> : collaborationActive && analyzerExecution && <button type="button" className="live-feed-item is-collaborating" onClick={() => navigate(`/agents/analises/${analyzerExecution.id}`)}><span className="live-feed-item__number">1↔2</span><span className="live-feed-item__copy"><strong>Analisador + Desenhista</strong><b>Discussão do requisito em andamento</b><small>{designerReaction(analyzerExecution.progress, now)}</small></span><span className="live-feed-item__meta"><em>Alinhando</em><time>agora</time></span><span className="live-feed-item__progress"><i style={{ width: `${analyzerExecution.progress}%` }} /></span></button>}
             {executions.slice(0, 8).map((execution) => {
               const agent = AGENTS_CATALOG.find((item) => item.id === execution.agentId)!;
               const state = executionState(execution);
