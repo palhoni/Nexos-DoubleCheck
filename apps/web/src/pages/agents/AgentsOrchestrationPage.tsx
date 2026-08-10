@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Icon } from '@/design-system';
 import { projetoHooks } from '@/entities/projeto/projeto.hooks';
 import { AGENTS_CATALOG, AGENT_STAGES, type AgentCatalogItem } from './agents.catalog';
+import { LiveAgentOffice } from './LiveAgentOffice';
 import './agents-orchestration.css';
 
 type WorkspaceTab = 'plano' | 'precondicoes' | 'gates' | 'configuracoes';
@@ -51,6 +52,7 @@ export function AgentsOrchestrationPage() {
   const [selectedAgentId, setSelectedAgentId] = useState(AGENTS_CATALOG[0].id);
   const [activeTab, setActiveTab] = useState<WorkspaceTab>('plano');
   const [notice, setNotice] = useState('');
+  const [viewMode, setViewMode] = useState<'office' | 'flow'>('office');
 
   const selectedProjectId = requestedProjectId && projects.some((project) => project.id === requestedProjectId)
     ? requestedProjectId
@@ -104,17 +106,24 @@ export function AgentsOrchestrationPage() {
 
         <div className="agents-toolbar__view">
           <span>Modo de exibição</span>
-          <div><button type="button" className="is-active" aria-label="Exibição em colunas"><Icon name="chart" size={16} /></button><button type="button" aria-label="Exibição em lista"><Icon name="folder" size={16} /></button></div>
+          <div><button type="button" className={viewMode === 'office' ? 'is-active' : ''} aria-label="Escritório ao vivo" title="Escritório ao vivo" onClick={() => setViewMode('office')}><Icon name="chart" size={16} /></button><button type="button" className={viewMode === 'flow' ? 'is-active' : ''} aria-label="Plano em colunas" title="Plano em colunas" onClick={() => setViewMode('flow')}><Icon name="folder" size={16} /></button></div>
         </div>
 
         <div className="agents-toolbar__actions">
-          <button type="button" className="agents-btn agents-btn--secondary" onClick={() => showPlannedAction('Plano salvo visualmente.')}>Salvar plano</button>
-          <button type="button" className="agents-btn agents-btn--primary" onClick={() => showPlannedAction('Plano preparado.')}><span className="agents-play">▶</span>Preparar execução</button>
+          {viewMode === 'office' ? <>
+            <button type="button" className="agents-btn agents-btn--secondary" onClick={() => navigate('/agents/analises')}>Ver análises</button>
+            <button type="button" className="agents-btn agents-btn--primary" onClick={() => navigate(`/agents/agent1-analisador-us${selectedProjectId ? `?projeto=${selectedProjectId}` : ''}`)}><span className="agents-play">▶</span>Nova análise</button>
+          </> : <>
+            <button type="button" className="agents-btn agents-btn--secondary" onClick={() => showPlannedAction('Plano salvo visualmente.')}>Salvar plano</button>
+            <button type="button" className="agents-btn agents-btn--primary" onClick={() => showPlannedAction('Plano preparado.')}><span className="agents-play">▶</span>Preparar execução</button>
+          </>}
           <button type="button" className="agents-icon-button" aria-label="Mais opções">•••</button>
         </div>
       </section>
 
-      <div className="agents-workspace-grid">
+      {viewMode === 'office' && <LiveAgentOffice projectId={selectedProjectId} projectName={projectName} />}
+
+      {viewMode === 'flow' && <div className="agents-workspace-grid">
         <section className="agents-flow-panel" aria-label="Fluxo dos agents">
           <div className="agents-flow-columns">
             {stages.map((stage, index) => (
@@ -170,9 +179,9 @@ export function AgentsOrchestrationPage() {
             <MiniProgress label="Aguardando regras" value={5} color="#b5b5b5" />
           </section>
         </aside>
-      </div>
+      </div>}
 
-      <section className="agents-plan-panel">
+      {viewMode === 'flow' && <section className="agents-plan-panel">
         <nav aria-label="Detalhes do plano">
           {([
             ['plano', 'Plano de execução'],
@@ -210,7 +219,7 @@ export function AgentsOrchestrationPage() {
           </div>
         )}
         {activeTab !== 'plano' && <div className="agents-tab-placeholder"><Icon name="info" size={22} /><strong>{activeTab === 'precondicoes' ? 'Pré-condições do projeto' : activeTab === 'gates' ? 'Gates de aprovação' : 'Configurações de execução'}</strong><span>Esta área está preparada visualmente e será detalhada quando você definir as próximas regras.</span></div>}
-      </section>
+      </section>}
 
       <footer className="agents-page-footer">© 2026 Renault Group. Uso interno.</footer>
     </div>
