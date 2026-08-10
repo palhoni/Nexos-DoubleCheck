@@ -137,7 +137,7 @@ export function AgentsOrchestrationPage() {
                   {stage.agents.map((agent) => <AgentCard key={agent.id} agent={agent} selected={agent.id === selectedAgent.id} onSelect={() => {
                     setSelectedAgentId(agent.id);
                     if (agent.id === 'agent1-analisador-us') navigate(`/agents/agent1-analisador-us${selectedProjectId ? `?projeto=${selectedProjectId}` : ''}`);
-                    if (agent.id === 'agent2-desenhista-testes') navigate('/agents/analises');
+                    if (agent.id === 'agent2-desenhista-testes') navigate('/agents/planos-teste');
                   }} />)}
                 </div>
                 {index < stages.length - 1 && <span className="agents-stage__connector" aria-hidden="true">→</span>}

@@ -220,7 +220,7 @@ export function LiveAgentOffice({ projectId, projectName }: { projectId: string;
     if (station.agent.id === 'agent1-analisador-us') {
       navigate(execution ? `/agents/analises/${execution.id}` : `/agents/agent1-analisador-us${projectId ? `?projeto=${projectId}` : ''}`);
     } else if (station.agent.id === 'agent2-desenhista-testes') {
-      navigate(execution ? `/agents/planos-teste/${execution.id}` : '/agents/analises');
+      navigate('/agents/planos-teste');
     }
   }
 
