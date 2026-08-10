@@ -126,6 +126,16 @@ async function main() {
   });
   console.log(`Usuário admin pronto: ${admin.email}`);
 
+  const agentEmail = process.env.SEED_AGENT_EMAIL ?? 'agent_ia@teste.com';
+  const agentPassword = process.env.SEED_AGENT_PASSWORD ?? 'Caete@1234';
+  const agentNome = process.env.SEED_AGENT_NOME ?? 'Agent IA';
+  const agentUser = await prisma.user.upsert({
+    where: { email: agentEmail },
+    update: { nome: agentNome, isActive: true },
+    create: { email: agentEmail, nome: agentNome, passwordHash: await hash(agentPassword) },
+  });
+  console.log(`Usuário dos Agents pronto: ${agentUser.email}`);
+
   async function seedRows<T extends { id: string }>(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     model: { upsert: (args: { where: { id: string }; update: object; create: any }) => Promise<{ id: string }> },
