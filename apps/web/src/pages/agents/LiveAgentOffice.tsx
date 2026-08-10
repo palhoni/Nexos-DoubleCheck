@@ -111,8 +111,12 @@ function relativeTime(value: string, now: number) {
   return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' }).format(new Date(value));
 }
 
+function HumanSprite({ number, pose = 'standing', className = '' }: { number: number; pose?: 'standing' | 'seated'; className?: string }) {
+  return <i className={`agent-human-sprite agent-human-sprite--${number} is-${pose}${className ? ` ${className}` : ''}`} />;
+}
+
 function PixelPerson({ station }: { station: AgentStation }) {
-  return <span className={`live-person live-person--${station.state}`} aria-hidden="true"><i className="live-person__shadow" /><i className="live-person__legs" /><i className="live-person__body" /><i className="live-person__head" /><i className="live-person__hair" /></span>;
+  return <span className={`live-person live-person--${station.state}`} aria-hidden="true"><i className="live-person__shadow" /><HumanSprite number={station.agent.number} pose={station.state === 'done' ? 'standing' : 'seated'} className="live-person__human" /></span>;
 }
 
 function Desk({ station, onOpen }: { station: AgentStation; onOpen: () => void }) {
@@ -144,7 +148,7 @@ function RefinementMeeting({ execution, now }: { execution: LiveExecution; now: 
         {AGENTS_CATALOG.map((agent) => (
           <div key={agent.id} className={`live-meeting-seat live-meeting-seat--${agent.number}${moment.agent === agent.number ? ' is-speaking' : ''}`}>
             {moment.agent === agent.number && <span className="live-meeting-seat__bubble">{moment.text}</span>}
-            <span className="live-meeting-person" aria-hidden="true"><i className="live-meeting-person__chair" /><i className="live-meeting-person__body" /><i className="live-meeting-person__head" /><i className="live-meeting-person__hair" /></span>
+            <span className="live-meeting-person" aria-hidden="true"><HumanSprite number={agent.number} className="live-meeting-person__arrival" /><HumanSprite number={agent.number} pose="seated" className="live-meeting-person__human" /></span>
             <span className="live-meeting-seat__label"><small>AGENT {agent.number}</small><strong>{agent.shortName}</strong></span>
           </div>
         ))}
