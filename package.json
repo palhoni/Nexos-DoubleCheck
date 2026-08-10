@@ -11,7 +11,7 @@
     "build:web": "npm run build -w apps/web",
     "db:generate": "npm run db:generate -w apps/api",
     "db:migrate": "npm run db:migrate -w apps/api",
-    "db:migrate:dev": "npm run db:migrate:dev -w apps/api",
+    "db:migrate:dev": "npm exec -w apps/api -- prisma migrate dev",
     "db:status": "npm run db:status -w apps/api",
     "db:seed": "npm run db:seed -w apps/api",
     "db:studio": "npm run db:studio -w apps/api"
