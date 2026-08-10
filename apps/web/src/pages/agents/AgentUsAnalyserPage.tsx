@@ -1,16 +1,16 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type ClipboardEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type ClipboardEvent } from 'react';
 import { isAxiosError } from 'axios';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button, Icon, Textarea } from '@/design-system';
-import { extractRequirementFile, getAgentExecution, listAgentExecutions, startUsAnalyser, type AgentExecutionHistoryItem, type AgentExecutionJob, type StructuredUsAnalysis, type UsAnalyserResult } from '@/entities/agents/agent-execution.api';
+import { extractRequirementFile, getAgentExecution, startUsAnalyser, type AgentExecutionJob, type StructuredUsAnalysis } from '@/entities/agents/agent-execution.api';
 import { projetoHooks } from '@/entities/projeto/projeto.hooks';
 import './agents-orchestration.css';
 
 const MAX_FILE_SIZE = 1_000_000;
 const MAX_PDF_SIZE = 10_000_000;
-type ResultTab = 'requisito' | 'gate' | 'perguntas' | 'cenarios' | 'regras' | 'tecnico';
+export type ResultTab = 'requisito' | 'gate' | 'perguntas' | 'cenarios' | 'regras' | 'tecnico';
 
-const RESULT_TABS: Array<{ id: ResultTab; label: string; icon: 'folder' | 'audit' | 'search' | 'clipboardCheck' | 'info' }> = [
+export const RESULT_TABS: Array<{ id: ResultTab; label: string; icon: 'folder' | 'audit' | 'search' | 'clipboardCheck' | 'info' }> = [
   { id: 'requisito', label: 'Requisito reescrito', icon: 'folder' },
   { id: 'gate', label: 'Gate de qualidade', icon: 'audit' },
   { id: 'perguntas', label: 'Perguntas', icon: 'search' },
@@ -115,7 +115,37 @@ function ProcessingModal({ job, onClose }: { job: AgentExecutionJob; onClose: ()
   );
 }
 
-function StructuredResult({ analysis, raw, activeTab }: { analysis: StructuredUsAnalysis; raw: string; activeTab: ResultTab }) {
+function severityPresentation(value: string) {
+  const normalized = value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  if (normalized === 'critical' || normalized === 'critico') return { tone: 'critical', label: 'Crítica' };
+  if (normalized === 'high' || normalized === 'alta' || normalized === 'alto') return { tone: 'high', label: 'Alta' };
+  if (normalized === 'medium' || normalized === 'media' || normalized === 'medio') return { tone: 'medium', label: 'Média' };
+  if (normalized === 'low' || normalized === 'baixa' || normalized === 'baixo') return { tone: 'low', label: 'Baixa' };
+  return { tone: 'medium', label: value || 'Média' };
+}
+
+function findingCategoryPresentation(value: string) {
+  const categories: Record<string, string> = {
+    'dependency-gap': 'Dependência não definida',
+    'missing-criteria': 'Critério ausente',
+    ambiguity: 'Ambiguidade',
+    untestable: 'Não testável',
+    contradiction: 'Contradição',
+    incomplete: 'Incompleto',
+    inconsistency: 'Inconsistência',
+    security: 'Segurança',
+    privacy: 'Privacidade',
+    compliance: 'Conformidade',
+  };
+  return categories[value.trim().toLowerCase()] ?? value.replaceAll('-', ' ');
+}
+
+function humanDecisionPresentation(value: string) {
+  const match = value.trim().match(/^\[?\s*(?:needs?\s+po\s+confirmation|po\s+confirmation|required\s+decision)\s*:\s*(.*?)\s*]?$/i);
+  return match?.[1] ?? value;
+}
+
+export function StructuredResult({ analysis, raw, activeTab }: { analysis: StructuredUsAnalysis; raw: string; activeTab: ResultTab }) {
   if (activeTab === 'requisito') return (
     <div className="agent-result-section">
       <div className="agent-requirement-summary">
@@ -135,8 +165,8 @@ function StructuredResult({ analysis, raw, activeTab }: { analysis: StructuredUs
     <div className="agent-result-section">
       <div className={`agent-gate-status is-${analysis.gate.status.toLowerCase()}`}><span>Resultado do gate</span><strong>{analysis.gate.status}</strong><p>{analysis.gate.status === 'PASS' ? 'Requisito em boas condições para avançar.' : analysis.gate.status === 'FAIL' ? 'Existem bloqueios críticos antes do desenvolvimento.' : 'Pode avançar após tratar as lacunas indicadas.'}</p></div>
       <div className="agent-gate-grid"><GateScore label="Coerência" score={analysis.gate.coerencia.nota} description={analysis.gate.coerencia.justificativa} /><GateScore label="Completude" score={analysis.gate.completude.nota} description={analysis.gate.completude.justificativa} /><GateScore label="Testabilidade" score={analysis.gate.testabilidade.nota} description={analysis.gate.testabilidade.justificativa} /></div>
-      <article className="agent-result-block"><h3>Findings identificados <span>{analysis.gate.findings.length}</span></h3>{analysis.gate.findings.length ? <div className="agent-findings-list">{analysis.gate.findings.map((finding, index) => <div key={`${index}-${finding.categoria}`}><header><span>{finding.categoria}</span><em className={`severity-${finding.severidade.toLowerCase()}`}>{finding.severidade}</em></header><blockquote>{finding.trecho}</blockquote><p>{finding.recomendacao}</p></div>)}</div> : <EmptyAnalysisSection text="Nenhum finding adicional foi identificado." />}</article>
-      {analysis.gate.decisoesHumanas.length > 0 && <article className="agent-result-block agent-human-decisions"><h3>Requer decisão humana <span>{analysis.gate.decisoesHumanas.length}</span></h3><ul>{analysis.gate.decisoesHumanas.map((item) => <li key={item}>{item}</li>)}</ul></article>}
+      <article className="agent-result-block"><h3>Pontos de atenção identificados <span>{analysis.gate.findings.length}</span></h3>{analysis.gate.findings.length ? <div className="agent-findings-list">{analysis.gate.findings.map((finding, index) => { const severity = severityPresentation(finding.severidade); return <div key={`${index}-${finding.categoria}`}><header><span>{findingCategoryPresentation(finding.categoria)}</span><em className={`severity-${severity.tone}`}>{severity.label}</em></header><blockquote>{finding.trecho}</blockquote><p>{finding.recomendacao}</p></div>; })}</div> : <EmptyAnalysisSection text="Nenhum ponto de atenção adicional foi identificado." />}</article>
+      {analysis.gate.decisoesHumanas.length > 0 && <article className="agent-result-block agent-human-decisions"><h3>Decisões que precisam do PO <span>{analysis.gate.decisoesHumanas.length}</span></h3><ul>{analysis.gate.decisoesHumanas.map((item) => <li key={item}>{humanDecisionPresentation(item)}</li>)}</ul></article>}
     </div>
   );
 
@@ -222,15 +252,7 @@ function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Não foi possível iniciar a análise.';
 }
 
-function executionStatusLabel(status: AgentExecutionHistoryItem['status'], parcial: boolean) {
-  if (parcial) return 'Parcial preservada';
-  if (status === 'completed') return 'Concluída';
-  if (status === 'failed') return 'Falhou';
-  if (status === 'processing') return 'Em processamento';
-  return 'Na fila';
-}
-
-function legacyAnalysis(title: string): StructuredUsAnalysis {
+export function legacyAnalysis(title: string): StructuredUsAnalysis {
   return {
     requisito: { identificador: title || 'Não informado', titulo: title || 'Requisito funcional', resumo: 'Este resultado foi gerado antes da implantação do formato visual. O conteúdo integral permanece disponível em Relatório técnico.', modo: 'Não classificado', escopo: 'Não classificado', criteriosAceite: [] },
     requisitoReescrito: { titulo: title || 'Requisito funcional', historiaUsuario: 'Disponível após uma nova execução do agent.', contexto: 'Consulte o relatório técnico da execução anterior.', objetivo: 'Não informado.', escopoIncluido: [], escopoFora: [], criteriosAceite: [], dependencias: [], premissas: [], pendencias: [] },
@@ -258,40 +280,25 @@ export function AgentUsAnalyserPage() {
   const [extractingFile, setExtractingFile] = useState(false);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState('');
-  const [result, setResult] = useState<UsAnalyserResult | null>(null);
-  const [resultTab, setResultTab] = useState<ResultTab>('requisito');
   const [job, setJob] = useState<AgentExecutionJob | null>(null);
   const [processingOpen, setProcessingOpen] = useState(false);
-  const [history, setHistory] = useState<AgentExecutionHistoryItem[]>([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
   const projectId = projectOverride || initialProjectId;
-  const resultAnalysis = result?.analise ?? legacyAnalysis(result?.titulo ?? title);
   const jobId = job?.id;
   const jobStatus = job?.status;
-
-  const refreshHistory = useCallback(async () => {
-    setHistoryLoading(true);
-    try {
-      setHistory(await listAgentExecutions(projectId || undefined));
-    } finally {
-      setHistoryLoading(false);
-    }
-  }, [projectId]);
-
-  useEffect(() => {
-    void refreshHistory();
-  }, [refreshHistory]);
 
   useEffect(() => {
     const savedJobId = window.sessionStorage.getItem('nexo.agent1.executionId');
     if (!savedJobId) return;
     void getAgentExecution(savedJobId).then((savedJob) => {
+      if ((savedJob.status === 'completed' || savedJob.status === 'failed') && savedJob.result) {
+        navigate(`/agents/analises/${savedJob.id}`, { replace: true });
+        return;
+      }
       setJob(savedJob);
       setProcessingOpen(savedJob.status === 'queued' || savedJob.status === 'processing');
       setRunning(savedJob.status === 'queued' || savedJob.status === 'processing');
-      if (savedJob.result) setResult(savedJob.result);
     }).catch(() => window.sessionStorage.removeItem('nexo.agent1.executionId'));
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
     if (!jobId || jobStatus === 'completed' || jobStatus === 'failed') return undefined;
@@ -303,18 +310,20 @@ export function AgentUsAnalyserPage() {
         if (cancelled) return;
         setJob(updated);
         if (updated.status === 'completed' && updated.result) {
-          setResult(updated.result);
-          setResultTab('requisito');
           setRunning(false);
-          void refreshHistory();
+          setProcessingOpen(false);
+          window.sessionStorage.removeItem('nexo.agent1.executionId');
+          navigate(`/agents/analises/${updated.id}`, { replace: true });
         } else if (updated.status === 'failed') {
           if (updated.result) {
-            setResult(updated.result);
-            setResultTab('requisito');
+            setRunning(false);
+            setProcessingOpen(false);
+            window.sessionStorage.removeItem('nexo.agent1.executionId');
+            navigate(`/agents/analises/${updated.id}`, { replace: true });
+            return;
           }
           setRunning(false);
           setError(updated.error || 'O agent não conseguiu concluir a análise.');
-          void refreshHistory();
         } else {
           timer = window.setTimeout(poll, 900);
         }
@@ -327,13 +336,12 @@ export function AgentUsAnalyserPage() {
       cancelled = true;
       if (timer) window.clearTimeout(timer);
     };
-  }, [jobId, jobStatus, refreshHistory]);
+  }, [jobId, jobStatus, navigate]);
 
   async function loadFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
     setError('');
-    setResult(null);
     const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
     const sizeLimit = isPdf ? MAX_PDF_SIZE : MAX_FILE_SIZE;
     if (file.size > sizeLimit) {
@@ -366,38 +374,20 @@ export function AgentUsAnalyserPage() {
     const before = requirement.slice(0, target.selectionStart);
     const after = requirement.slice(target.selectionEnd);
     setRequirement(`${before}${formatRequirementText(pasted)}${after}`.slice(0, 120_000));
-    setResult(null);
   }
 
   async function execute() {
     if (!projectId || requirement.trim().length < 20) return;
     setRunning(true);
     setError('');
-    setResult(null);
     try {
       const startedJob = await startUsAnalyser({ projetoId: projectId, titulo: title.trim() || undefined, requisito: requirement.trim() });
       setJob(startedJob);
       window.sessionStorage.setItem('nexo.agent1.executionId', startedJob.id);
       setProcessingOpen(true);
-      void refreshHistory();
     } catch (executionError) {
       setError(errorMessage(executionError));
       setRunning(false);
-    }
-  }
-
-  async function openHistoryItem(item: AgentExecutionHistoryItem) {
-    setError('');
-    try {
-      const savedJob = await getAgentExecution(item.id);
-      setJob(savedJob);
-      setResult(savedJob.result ?? null);
-      setResultTab('requisito');
-      setRunning(savedJob.status === 'queued' || savedJob.status === 'processing');
-      setProcessingOpen(savedJob.status === 'queued' || savedJob.status === 'processing');
-      window.sessionStorage.setItem('nexo.agent1.executionId', savedJob.id);
-    } catch (historyError) {
-      setError(errorMessage(historyError));
     }
   }
 
@@ -428,7 +418,7 @@ export function AgentUsAnalyserPage() {
 
           <div className="agent-field agent-requirement-editor">
             <div className="agent-requirement-editor__head"><span>Requisito funcional <b>*</b></span><div><button type="button" className={requirementView === 'edit' ? 'is-active' : ''} onClick={() => setRequirementView('edit')}>Editar</button><button type="button" className={requirementView === 'preview' ? 'is-active' : ''} onClick={() => setRequirementView('preview')} disabled={!requirement.trim()}>Visualização organizada</button><button type="button" onClick={() => { setRequirement(formatRequirementText(requirement)); setRequirementView('preview'); }} disabled={!requirement.trim() || running}>Organizar texto</button></div></div>
-            {requirementView === 'edit' ? <Textarea rows={18} value={requirement} onPaste={pasteRequirement} onChange={(event) => { setRequirement(event.target.value); setResult(null); }} placeholder="Cole aqui a descrição, critérios de aceite, regras e referências do requisito..." disabled={running} /> : <RequirementPreview content={requirement} />}
+            {requirementView === 'edit' ? <Textarea rows={18} value={requirement} onPaste={pasteRequirement} onChange={(event) => setRequirement(event.target.value)} placeholder="Cole aqui a descrição, critérios de aceite, regras e referências do requisito..." disabled={running} /> : <RequirementPreview content={requirement} />}
             <small>{requirement.length.toLocaleString('pt-BR')} / 120.000 caracteres</small>
           </div>
 
@@ -443,33 +433,6 @@ export function AgentUsAnalyserPage() {
         </aside>
       </div>
 
-      <section className="agent-history-card">
-        <header>
-          <div><span className="agent-history-icon"><Icon name="clock" size={19} /></span><span><small>RESULTADOS SALVOS NO BANCO</small><h2>Histórico de análises</h2><p>Reabra resultados completos, parciais ou acompanhe execuções em andamento.</p></span></div>
-          <button type="button" onClick={() => void refreshHistory()} disabled={historyLoading}>{historyLoading ? 'Atualizando...' : 'Atualizar histórico'}</button>
-        </header>
-        {history.length ? <div className="agent-history-list">{history.map((item) => (
-          <button type="button" className="agent-history-row" key={item.id} onClick={() => void openHistoryItem(item)}>
-            <span className={`agent-history-status is-${item.status}${item.parcial ? ' is-partial' : ''}`}><i />{executionStatusLabel(item.status, item.parcial)}</span>
-            <span className="agent-history-title"><strong>{item.titulo || 'Requisito funcional'}</strong><small>{item.projeto.nome} · {item.projeto.codigo}</small></span>
-            <span className="agent-history-owner"><small>Executado por</small><strong>{item.actorUser.nome}</strong></span>
-            <span className="agent-history-date"><strong>{new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(item.createdAt))}</strong><small>{item.hasResult ? 'Resultado disponível' : `${item.progress}% processado`}</small></span>
-            <span className="agent-history-open">Ver análise →</span>
-          </button>
-        ))}</div> : <div className="agent-history-empty"><Icon name="clock" size={23} /><strong>{historyLoading ? 'Carregando histórico...' : 'Nenhuma análise salva'}</strong><span>As próximas execuções aparecerão aqui automaticamente.</span></div>}
-      </section>
-
-      {result && (
-        <section className="agent-result-card" aria-live="polite">
-          <header><div><small>{result.parcial ? 'ANÁLISE PARCIAL PRESERVADA' : 'ANÁLISE CONCLUÍDA'}</small><h2>{result.titulo}</h2><p>{result.projeto.nome} · {result.provider} · {(result.duracaoMs / 1000).toFixed(1)}s</p></div><Button variant="secondary" onClick={() => navigator.clipboard.writeText(result.resultado)}>Copiar relatório {result.parcial ? 'parcial' : 'completo'}</Button></header>
-          {result.parcial && <div className="agent-partial-warning"><Icon name="info" size={17} /><span><strong>Execução interrompida — resultado parcial recuperado</strong>{result.motivoInterrupcao || 'A execução terminou antes de concluir todas as seções.'}</span></div>}
-          <nav className="agent-result-tabs" aria-label="Seções da análise">
-            {RESULT_TABS.map((tab) => <button type="button" key={tab.id} className={resultTab === tab.id ? 'is-active' : ''} onClick={() => setResultTab(tab.id)}><Icon name={tab.icon} size={15} />{tab.label}<b>{tab.id === 'perguntas' ? resultAnalysis.perguntasRefinamento.length : tab.id === 'cenarios' ? resultAnalysis.cenariosTeste.length : tab.id === 'regras' ? resultAnalysis.regrasNegocio.length : ''}</b></button>)}
-            <button type="button" className={resultTab === 'tecnico' ? 'is-active is-technical' : 'is-technical'} onClick={() => setResultTab('tecnico')}>Relatório técnico</button>
-          </nav>
-          <StructuredResult analysis={resultAnalysis} raw={result.resultado} activeTab={resultTab} />
-        </section>
-      )}
     </div>
   );
 }

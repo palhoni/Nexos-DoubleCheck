@@ -12,6 +12,7 @@ generated/
 
 # Runtime and debug files
 *.log
+*.err
 logs/
 *.pid
 

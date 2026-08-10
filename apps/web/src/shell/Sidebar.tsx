@@ -199,7 +199,9 @@ export function Sidebar({ onLogout }: SidebarProps) {
     const target = new URL(item.path, window.location.origin);
     const targetArea = target.searchParams.get('area');
     const currentArea = new URLSearchParams(location.search).get('area');
-    const active = location.pathname === '/agents' && targetArea === currentArea;
+    const active = target.pathname === '/agents'
+      ? location.pathname === '/agents' && targetArea === currentArea
+      : location.pathname.startsWith(target.pathname);
     return (
       <button
         type="button"
@@ -278,6 +280,7 @@ export function Sidebar({ onLogout }: SidebarProps) {
           {isAgentUser ? (
             <>
               {agentWorkspaceButton({ path: '/agents', label: 'Orquestração', icon: 'network' })}
+              {agentWorkspaceButton({ path: '/agents/analises', label: 'Análises de US', icon: 'clipboardCheck' })}
               {!collapsed && <div className="renault-sidebar-section-label">Ciclo de trabalho</div>}
               {AGENT_WORKSPACE_NAV.map(agentWorkspaceButton)}
               {!collapsed && <div className="renault-sidebar-section-label">Projetos recentes</div>}

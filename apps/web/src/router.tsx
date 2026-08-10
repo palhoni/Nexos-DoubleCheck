@@ -36,6 +36,8 @@ import { MinhaAreaPage } from '@/pages/minha-area/MinhaAreaPage';
 import { AtividadePage } from '@/pages/atividade/AtividadePage';
 import { AgentsOrchestrationPage } from '@/pages/agents/AgentsOrchestrationPage';
 import { AgentUsAnalyserPage } from '@/pages/agents/AgentUsAnalyserPage';
+import { UsAnalysesPage } from '@/pages/agents/UsAnalysesPage';
+import { UsAnalysisDetailPage } from '@/pages/agents/UsAnalysisDetailPage';
 
 export const router = createBrowserRouter([
   {
@@ -57,6 +59,8 @@ export const router = createBrowserRouter([
           { path: '/atividade', element: <AtividadePage /> },
           { path: '/agents', element: <AgentsOrchestrationPage /> },
           { path: '/agents/agent1-analisador-us', element: <AgentUsAnalyserPage /> },
+          { path: '/agents/analises', element: <UsAnalysesPage /> },
+          { path: '/agents/analises/:executionId', element: <UsAnalysisDetailPage /> },
           { path: '/minha-area', element: <MinhaAreaPage /> },
           { path: '/projetos', element: <ProjetosListPage /> },
           { path: '/projetos/novo', element: <ProjetoFormPage mode="create" /> },

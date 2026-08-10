@@ -497,6 +497,31 @@
 .agent-history-empty strong { margin: 9px 0 3px; color: var(--color-text-secondary); font-size: 12px; }
 .agent-history-empty span { font-size: 10px; }
 
+/* US analysis library and dedicated detail */
+.us-analyses-page, .us-analysis-detail-page { padding: 24px 28px 48px; color: var(--color-text); }
+.us-analyses-hero { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 25px 28px; border-radius: 14px; background: linear-gradient(120deg, #080808 0%, #181818 72%, #292300 100%); color: #fff; box-shadow: 0 8px 28px rgba(0, 0, 0, .08); }
+.us-analyses-hero small, .us-analysis-detail-header small { color: #ffcc00; font-size: 9px; font-weight: 800; letter-spacing: .1em; }
+.us-analyses-hero h1 { margin: 4px 0 5px; font-size: 28px; }
+.us-analyses-hero p { max-width: 720px; margin: 0; color: rgba(255, 255, 255, .68); font-size: 12px; line-height: 1.5; }
+.us-analyses-hero > button { display: inline-flex; align-items: center; gap: 8px; padding: 11px 15px; border: 0; border-radius: 8px; background: #ffcc00; color: #111; font-size: 11px; font-weight: 750; cursor: pointer; }
+.us-analyses-list { margin-top: 18px; }
+.us-analyses-list > .agent-execution-error { margin: 14px 18px 0; }
+.us-analysis-detail-header { position: relative; padding: 22px 24px; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-bg-container); box-shadow: 0 4px 18px rgba(0, 0, 0, .045); }
+.us-analysis-detail-header > button { padding: 0; margin-bottom: 18px; border: 0; background: transparent; color: var(--color-text-tertiary); font-size: 10px; font-weight: 650; cursor: pointer; }
+.us-analysis-detail-header > button:hover { color: #8a6c00; }
+.us-analysis-detail-title { display: flex; align-items: center; gap: 14px; }
+.us-analysis-detail-title > span { width: 48px; height: 48px; display: grid; flex: 0 0 auto; place-items: center; border-radius: 11px; background: #111; color: #ffcc00; }
+.us-analysis-detail-header h1 { margin: 3px 0 4px; font-size: 26px; }
+.us-analysis-detail-header p { margin: 0; color: var(--color-text-secondary); font-size: 12px; }
+.us-analysis-detail-actions { position: absolute; right: 24px; bottom: 24px; display: flex; gap: 8px; }
+.us-analysis-result { margin-top: 16px; }
+.us-analysis-result > .agent-result-tabs { border-top: 0; }
+.us-analysis-loading { min-height: 420px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--color-text-tertiary); font-size: 12px; }
+.us-analysis-progress { padding: 22px; margin-top: 16px; border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-bg-container); }
+.us-analysis-progress i { display: block; height: 8px; overflow: hidden; border-radius: 99px; background: var(--color-fill-secondary); }
+.us-analysis-progress i b { display: block; height: 100%; border-radius: inherit; background: #ffcc00; transition: width .3s ease; }
+.us-analysis-progress span { display: block; margin-top: 10px; color: var(--color-text-tertiary); font-size: 10px; }
+
 @media (max-width: 900px) {
   .agent-gate-grid, .agent-requirement-summary { grid-template-columns: 1fr; }
   .agent-scenario-grid, .agent-rules-list { grid-template-columns: 1fr; }
@@ -508,6 +533,9 @@
   .agent-result-tabs .is-technical { margin-left: 0; }
   .agent-history-card > header { align-items: flex-start; flex-direction: column; }
   .agent-history-row { grid-template-columns: 1fr auto; gap: 8px 14px; }
+  .us-analyses-page, .us-analysis-detail-page { padding: 12px; }
+  .us-analyses-hero { align-items: flex-start; flex-direction: column; padding: 20px; }
+  .us-analysis-detail-actions { position: static; margin-top: 18px; }
   .agent-history-title { grid-column: 1 / -1; grid-row: 1; }
   .agent-history-status { grid-column: 1; grid-row: 2; }
   .agent-history-date { grid-column: 2; grid-row: 2; text-align: right; }

@@ -783,6 +783,7 @@ export class AgentsService implements OnModuleInit {
     return `Execute a análise do requisito abaixo em PT-BR, seguindo integralmente sua definição de agent.
 
 RESTRIÇÕES DESTA EXECUÇÃO:
+- Escreva TODOS os valores textuais em português do Brasil. Não use títulos, categorias, recomendações ou decisões em inglês; mantenha em inglês somente os enums exigidos pelo contrato JSON.
 - Não use ferramentas, não leia arquivos e não grave artefatos.
 - Entregue na resposta todo o conteúdo que normalmente seria salvo em docs/analysis.
 - Não invente regras; marque decisões que dependem do PO.
