@@ -112,7 +112,7 @@ export function AgentsOrchestrationPage() {
         <div className="agents-toolbar__actions">
           {viewMode === 'office' ? <>
             <button type="button" className="agents-btn agents-btn--secondary" onClick={() => navigate('/agents/analises')}>Ver análises</button>
-            <button type="button" className="agents-btn agents-btn--primary" onClick={() => navigate(`/agents/agent1-analisador-us${selectedProjectId ? `?projeto=${selectedProjectId}` : ''}`)}><span className="agents-play">▶</span>Nova análise</button>
+            <button type="button" className="agents-btn agents-btn--primary" onClick={() => navigate(`/agents/agent1-analisador-us?nova=1${selectedProjectId ? `&projeto=${selectedProjectId}` : ''}`)}><span className="agents-play">▶</span>Nova análise</button>
           </> : <>
             <button type="button" className="agents-btn agents-btn--secondary" onClick={() => showPlannedAction('Plano salvo visualmente.')}>Salvar plano</button>
             <button type="button" className="agents-btn agents-btn--primary" onClick={() => showPlannedAction('Plano preparado.')}><span className="agents-play">▶</span>Preparar execução</button>

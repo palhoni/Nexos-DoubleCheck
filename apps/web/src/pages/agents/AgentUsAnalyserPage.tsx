@@ -266,11 +266,12 @@ export function legacyAnalysis(title: string): StructuredUsAnalysis {
 
 export function AgentUsAnalyserPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { data: projectsData, isLoading: projectsLoading } = projetoHooks.useList({ page: 1, pageSize: 100, sortBy: 'nome', sortDir: 'asc' });
   const projects = useMemo(() => projectsData?.data ?? [], [projectsData?.data]);
   const requestedProjectId = searchParams.get('projeto');
+  const newAnalysisRequested = searchParams.get('nova') === '1';
   const initialProjectId = requestedProjectId && projects.some((project) => project.id === requestedProjectId) ? requestedProjectId : projects[0]?.id ?? '';
   const [projectOverride, setProjectOverride] = useState('');
   const [title, setTitle] = useState('');
@@ -287,18 +288,25 @@ export function AgentUsAnalyserPage() {
   const jobStatus = job?.status;
 
   useEffect(() => {
+    if (newAnalysisRequested) {
+      window.sessionStorage.removeItem('nexo.agent1.executionId');
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete('nova');
+      setSearchParams(nextParams, { replace: true });
+      return;
+    }
     const savedJobId = window.sessionStorage.getItem('nexo.agent1.executionId');
     if (!savedJobId) return;
     void getAgentExecution(savedJobId).then((savedJob) => {
-      if ((savedJob.status === 'completed' || savedJob.status === 'failed') && savedJob.result) {
-        navigate(`/agents/analises/${savedJob.id}`, { replace: true });
+      if (savedJob.status === 'completed' || savedJob.status === 'failed') {
+        window.sessionStorage.removeItem('nexo.agent1.executionId');
         return;
       }
       setJob(savedJob);
       setProcessingOpen(savedJob.status === 'queued' || savedJob.status === 'processing');
       setRunning(savedJob.status === 'queued' || savedJob.status === 'processing');
     }).catch(() => window.sessionStorage.removeItem('nexo.agent1.executionId'));
-  }, [navigate]);
+  }, [newAnalysisRequested, searchParams, setSearchParams]);
 
   useEffect(() => {
     if (!jobId || jobStatus === 'completed' || jobStatus === 'failed') return undefined;
