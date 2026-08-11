@@ -6,7 +6,8 @@ Este repositório é um monorepo npm com:
 
 - `apps/api`: API NestJS, Prisma e PostgreSQL;
 - `apps/web`: frontend React, TypeScript e Vite;
-- `agents`: definições dos Agents utilizados pelo GitHub Copilot;
+- `agents`: pacote legado das definições dos Agents (formato GitHub Copilot Chat), sendo substituído por `.claude/agents`;
+- `.claude\agents`: definições dos Agents no formato de subagent do Claude Code, usadas tanto pela API quanto pelo Claude Code;
 - `apps/api/prisma/migrations`: histórico completo de migrations do banco;
 - `apps/api/prisma/seed.ts`: usuários padrão e dados de demonstração.
 
@@ -18,7 +19,7 @@ Instale antes de iniciar:
 - Node.js `20.19+`, `22.12+` ou `24+`;
 - npm `10+`;
 - PostgreSQL 15 ou superior;
-- uma conta GitHub com acesso ao GitHub Copilot, caso os Agents sejam utilizados.
+- opcionalmente, uma chave de API da Anthropic (Claude) — sem ela, os Agents usam a sessão local do Claude Code (ver seção 9).
 
 Confirme as instalações:
 
@@ -85,8 +86,8 @@ Execute dentro do `psql`, tanto no Windows quanto no macOS:
 
 ```sql
 CREATE USER nexus_api WITH PASSWORD 'troque-por-uma-senha-local-forte';
-CREATE DATABASE nexus_dev OWNER nexus_api;
-GRANT ALL PRIVILEGES ON DATABASE nexus_dev TO nexus_api;
+CREATE DATABASE doublecheck OWNER nexus_api;
+GRANT ALL PRIVILEGES ON DATABASE doublecheck TO nexus_api;
 ```
 
 Saia do `psql`:
@@ -98,7 +99,7 @@ Saia do `psql`:
 Teste a conexão:
 
 ```bash
-psql -h localhost -U nexus_api -d nexus_dev
+psql -h localhost -U nexus_api -d doublecheck
 ```
 
 ## 4. Configurar as variáveis de ambiente
@@ -120,7 +121,7 @@ cp apps/web/.env.example apps/web/.env
 Edite `apps/api/.env`:
 
 ```dotenv
-DATABASE_URL="postgresql://nexus_api:troque-por-uma-senha-local-forte@localhost:5432/nexus_dev?schema=public"
+DATABASE_URL="postgresql://nexus_api:troque-por-uma-senha-local-forte@localhost:5432/doublecheck?schema=public"
 
 JWT_ACCESS_SECRET="cole-aqui-um-segredo-hexadecimal"
 JWT_ACCESS_EXPIRES_IN="8h"
@@ -128,7 +129,11 @@ JWT_ACCESS_EXPIRES_IN="8h"
 WEB_ORIGIN="http://localhost:5173"
 PORT=3000
 
-COPILOT_AGENT_TIMEOUT_MS=900000
+ANTHROPIC_API_KEY="sk-ant-..."
+ANTHROPIC_MODEL_DEFAULT="claude-opus-5"
+AGENT_EFFORT_DEFAULT="high"
+AGENT_MAX_OUTPUT_TOKENS=32000
+AGENT_TIMEOUT_MS=900000
 
 SEED_ADMIN_EMAIL="admin@nexus.local"
 SEED_ADMIN_PASSWORD="NexusAdmin123!"
@@ -312,16 +317,27 @@ Os planos ficam salvos em **Planos de Teste** e apresentam:
 
 Nesta primeira versão, o Agent 2 somente desenha e salva o plano. Ele não cria nem altera arquivos de automação.
 
-## 9. GitHub Copilot para os Agents
+## 9. Claude (Anthropic) para os Agents
 
-A configuração da API usa a sessão autenticada do GitHub Copilot (`useLoggedInUser`). Para executar os Agents:
+A API executa os Agents de IA usando Claude, por um de dois caminhos (escolhido automaticamente):
 
-1. use uma conta GitHub com licença ativa do Copilot;
-2. conclua a autenticação solicitada pelo SDK na primeira execução;
-3. mantenha a pasta `agents/.github/agents` no repositório;
-4. não remova a dependência `@github/copilot-sdk` da API.
+- **Com `ANTHROPIC_API_KEY` configurada** (recomendado para staging/produção): usa a Messages API
+  (`@anthropic-ai/sdk`) diretamente.
+- **Sem `ANTHROPIC_API_KEY`** (bom para rodar localmente): usa o Claude Agent SDK
+  (`@anthropic-ai/claude-agent-sdk`), que reaproveita a sessão do Claude Code já autenticada na
+  máquina — não pede nenhuma chave, mas só funciona numa máquina com `claude` logado.
 
-O tempo limite padrão é de 15 minutos e pode ser alterado em `COPILOT_AGENT_TIMEOUT_MS`.
+Para executar os Agents:
+
+1. (opcional) gere uma chave de API em https://console.anthropic.com e configure `ANTHROPIC_API_KEY`
+   no `.env` da API — sem ela, a API cai automaticamente para a sessão do Claude Code local;
+2. mantenha a pasta `.claude/agents` no repositório — é de lá que a API carrega a definição (persona) de cada Agent;
+3. o modelo padrão é `claude-opus-5` (`ANTHROPIC_MODEL_DEFAULT`), com esforço de raciocínio `high` (`AGENT_EFFORT_DEFAULT`, usado só no modo com API key).
+
+Para forçar um dos dois caminhos manualmente, defina `AGENT_AUTH_MODE=api-key` ou
+`AGENT_AUTH_MODE=claude-code-session` no `.env` (o padrão é `auto`, com a lógica acima).
+
+O tempo limite padrão é de 15 minutos e pode ser alterado em `AGENT_TIMEOUT_MS`.
 
 ## 10. Atualizar uma instalação existente
 
@@ -352,7 +368,7 @@ Os dois comandos devem terminar sem erros antes de publicar uma alteração.
 
 - Confirme que o serviço PostgreSQL está iniciado.
 - Verifique host, porta, usuário, senha e database em `DATABASE_URL`.
-- Teste com `psql -h localhost -U nexus_api -d nexus_dev`.
+- Teste com `psql -h localhost -U nexus_api -d doublecheck`.
 - Confirme que caracteres especiais da senha foram codificados na URL.
 
 ### Prisma informa que o Client está desatualizado
@@ -385,10 +401,12 @@ Lembre-se de que o seed preserva senhas de usuários existentes. As credenciais 
 
 ### Agent não inicia
 
-- Confirme a autenticação e a licença do GitHub Copilot.
+- Se `ANTHROPIC_API_KEY` estiver configurada no `.env`, confirme que é válida.
+- Se `ANTHROPIC_API_KEY` **não** estiver configurada, confirme que a máquina tem uma sessão do Claude
+  Code autenticada (rode `claude` no terminal e veja se abre sem pedir login).
 - Confira se a API está em execução.
-- Verifique se a pasta `agents/.github/agents` existe.
-- Consulte o terminal da API para obter a mensagem completa.
+- Verifique se a pasta `.claude/agents` existe e contém a definição do Agent.
+- Consulte o terminal da API para obter a mensagem completa (ela informa qual dos dois runtimes está ativo ao subir).
 
 ## 13. Portas utilizadas
 
@@ -398,3 +416,5 @@ Lembre-se de que o seed preserva senhas de usuários existentes. As credenciais 
 | API NestJS | `3000` |
 | Frontend Vite | `5173` |
 | Prisma Studio | `5555` |
+#   N e x o s - D o u b l e C h e c k  
+ 
