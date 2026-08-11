@@ -416,5 +416,3 @@ Lembre-se de que o seed preserva senhas de usuários existentes. As credenciais 
 | API NestJS | `3000` |
 | Frontend Vite | `5173` |
 | Prisma Studio | `5555` |
-#   N e x o s - D o u b l e C h e c k  
- 
