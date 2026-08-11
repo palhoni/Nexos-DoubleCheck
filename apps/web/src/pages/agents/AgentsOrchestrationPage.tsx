@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Icon } from '@/design-system';
 import { projetoHooks } from '@/entities/projeto/projeto.hooks';
-import { AGENTS_CATALOG, AGENT_STAGES, type AgentCatalogItem } from './agents.catalog';
+import { AGENTS_CATALOG, AGENT_STAGES, LIVE_AGENTS, type AgentCatalogItem } from './agents.catalog';
 import { LiveAgentOffice } from './LiveAgentOffice';
 import './agents-orchestration.css';
 
@@ -34,11 +34,11 @@ function AgentCard({ agent, selected, onSelect }: { agent: AgentCatalogItem; sel
   );
 }
 
-function MiniProgress({ label, value, color }: { label: string; value: number; color: string }) {
+function MiniProgress({ label, value, total, color }: { label: string; value: number; total: number; color: string }) {
   return (
     <div className="agents-mini-progress">
-      <span>{label}</span><strong>{value}/9</strong>
-      <i><b style={{ width: `${(value / 9) * 100}%`, background: color }} /></i>
+      <span>{label}</span><strong>{value}/{total}</strong>
+      <i><b style={{ width: `${(value / total) * 100}%`, background: color }} /></i>
     </div>
   );
 }
@@ -136,8 +136,8 @@ export function AgentsOrchestrationPage() {
                 <div className="agents-stage__cards">
                   {stage.agents.map((agent) => <AgentCard key={agent.id} agent={agent} selected={agent.id === selectedAgent.id} onSelect={() => {
                     setSelectedAgentId(agent.id);
-                    if (agent.id === 'agent1-analisador-us') navigate(`/agents/agent1-analisador-us${selectedProjectId ? `?projeto=${selectedProjectId}` : ''}`);
-                    if (agent.id === 'agent2-desenhista-testes') navigate('/agents/planos-teste');
+                    if (agent.routes?.start) navigate(`${agent.routes.start}${selectedProjectId ? `?projeto=${selectedProjectId}` : ''}`);
+                    else if (agent.routes?.list) navigate(agent.routes.list);
                   }} />)}
                 </div>
                 {index < stages.length - 1 && <span className="agents-stage__connector" aria-hidden="true">→</span>}
@@ -159,7 +159,7 @@ export function AgentsOrchestrationPage() {
               <span><small>Agent {selectedAgent.number}</small><strong>{selectedAgent.shortName}</strong><em>{AGENT_STAGES.find((stage) => stage.id === selectedAgent.stage)?.label}</em></span>
             </div>
             <p>{selectedAgent.description}</p>
-            <div className="agents-command"><span>Comando de origem</span><code>{selectedAgent.command}</code></div>
+            <div className="agents-command"><span>Definição do agent</span><code>{selectedAgent.definitionPath}</code></div>
             <div className="agents-capabilities">{selectedAgent.capabilities.map((item) => <span key={item}>{item}</span>)}</div>
           </section>
 
@@ -174,9 +174,9 @@ export function AgentsOrchestrationPage() {
 
           <section className="agents-rail-card agents-summary-card">
             <header>Resumo da preparação</header>
-            <MiniProgress label="Catalogados" value={9} color="#2ea94f" />
-            <MiniProgress label="Configurados" value={4} color="#2868f0" />
-            <MiniProgress label="Aguardando regras" value={5} color="#b5b5b5" />
+            <MiniProgress label="Catalogados" value={AGENTS_CATALOG.length} total={AGENTS_CATALOG.length} color="#2ea94f" />
+            <MiniProgress label="Configurados" value={LIVE_AGENTS.length} total={AGENTS_CATALOG.length} color="#2868f0" />
+            <MiniProgress label="Aguardando regras" value={AGENTS_CATALOG.length - LIVE_AGENTS.length} total={AGENTS_CATALOG.length} color="#b5b5b5" />
           </section>
         </aside>
       </div>}

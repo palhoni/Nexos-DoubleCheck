@@ -16,7 +16,7 @@ export interface ExtractedRequirementFile {
 
 export interface UsAnalyserResult {
   agent: string;
-  provider: 'GitHub Copilot';
+  provider: 'GitHub Copilot' | 'Anthropic';
   projeto: { id: string; nome: string; codigo: string };
   titulo: string;
   resultado: string;
@@ -73,7 +73,7 @@ export interface StructuredUsAnalysis {
 }
 
 export type AgentExecutionStatus = 'queued' | 'processing' | 'completed' | 'failed';
-export type AgentExecutionPhase = 'queued' | 'context' | 'copilot' | 'requirement' | 'gate' | 'rules' | 'questions' | 'scenarios' | 'structuring' | 'completed' | 'failed';
+export type AgentExecutionPhase = 'queued' | 'context' | 'model' | 'requirement' | 'gate' | 'rules' | 'questions' | 'scenarios' | 'structuring' | 'completed' | 'failed';
 
 export interface AgentExecutionJob {
   id: string;
@@ -134,20 +134,22 @@ export interface StructuredTestPlan {
 
 export interface TestPlanMonitoring {
   model?: string;
-  finishReason?: string;
+  /** stop_reason normalizado do Claude: end_turn | max_tokens | refusal | tool_use | aborted | error */
+  stopReason?: string;
+  /** categoria da recusa (stop_details.category), quando stopReason === 'refusal' */
+  stopCategory?: string;
   inputTokens?: number;
   outputTokens?: number;
+  cacheReadTokens?: number;
+  cacheCreationTokens?: number;
   providerDurationMs?: number;
-  requestId?: string;
-  serviceRequestId?: string;
+  providerRequestId?: string;
   streamedCharacters: number;
   finalCharacters: number;
-  streamedBytes?: number;
   lastChunkAt?: string;
   finalReceivedAt?: string;
   idleAborted: boolean;
   contextTruncations: number;
-  modelFailure?: string;
   jsonValid: boolean;
   contractValid: boolean;
   validationErrors: string[];
@@ -157,7 +159,7 @@ export interface TestPlanMonitoring {
 
 export interface TestDesignerResult {
   agent: 'agent2-desenhista-testes';
-  provider: 'GitHub Copilot';
+  provider: 'GitHub Copilot' | 'Anthropic';
   projeto: { id: string; nome: string; codigo: string };
   sourceExecutionId: string;
   titulo: string;
@@ -178,7 +180,7 @@ export interface TestDesignerJob {
   message: string;
   createdAt: string;
   updatedAt: string;
-  live: { characters: number; gaps: number; cases: number; blockers: number; lastChunkAt?: string; model?: string; inputTokens?: number; outputTokens?: number; finishReason?: string };
+  live: { characters: number; gaps: number; cases: number; blockers: number; lastChunkAt?: string; model?: string; inputTokens?: number; outputTokens?: number; stopReason?: string };
   result?: TestDesignerResult;
   error?: string;
 }

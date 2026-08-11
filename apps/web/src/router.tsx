@@ -41,6 +41,12 @@ import { UsAnalysisDetailPage } from '@/pages/agents/UsAnalysisDetailPage';
 import { TestDesignerPage } from '@/pages/agents/TestDesignerPage';
 import { TestPlanDetailPage } from '@/pages/agents/TestPlanDetailPage';
 import { TestPlansPage } from '@/pages/agents/TestPlansPage';
+import { EndpointDiscoveryPage } from '@/pages/agents/EndpointDiscoveryPage';
+import { EndpointBacklogsPage } from '@/pages/agents/EndpointBacklogsPage';
+import { EndpointBacklogDetailPage } from '@/pages/agents/EndpointBacklogDetailPage';
+import { BugReportPage } from '@/pages/agents/BugReportPage';
+import { BugsIndexPage } from '@/pages/agents/BugsIndexPage';
+import { BugDetailPage } from '@/pages/agents/BugDetailPage';
 
 export const router = createBrowserRouter([
   {
@@ -67,6 +73,12 @@ export const router = createBrowserRouter([
           { path: '/agents/desenhista-testes/:analysisExecutionId', element: <TestDesignerPage /> },
           { path: '/agents/planos-teste', element: <TestPlansPage /> },
           { path: '/agents/planos-teste/:planExecutionId', element: <TestPlanDetailPage /> },
+          { path: '/agents/descobridor-endpoints', element: <EndpointDiscoveryPage /> },
+          { path: '/agents/endpoints', element: <EndpointBacklogsPage /> },
+          { path: '/agents/endpoints/:backlogId', element: <EndpointBacklogDetailPage /> },
+          { path: '/agents/gerador-bug-report', element: <BugReportPage /> },
+          { path: '/agents/bugs', element: <BugsIndexPage /> },
+          { path: '/agents/bugs/:bugId', element: <BugDetailPage /> },
           { path: '/minha-area', element: <MinhaAreaPage /> },
           { path: '/projetos', element: <ProjetosListPage /> },
           { path: '/projetos/novo', element: <ProjetoFormPage mode="create" /> },

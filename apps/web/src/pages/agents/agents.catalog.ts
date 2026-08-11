@@ -1,5 +1,19 @@
 export type AgentStage = 'requisitos' | 'descoberta' | 'planejamento' | 'qualidade';
 
+/**
+ * 'live'    — tem execução real conectada ao backend (Live Agent Office mostra estado real).
+ * 'planned' — ainda é só a definição do agent (.claude/agents/*.md); no Live Agent Office
+ *             aparece com reação cosmética de "apoio" enquanto um agent live está processando,
+ *             e nunca gera uma execução real no banco.
+ */
+export type AgentIntegration = 'live' | 'planned';
+
+export interface AgentCatalogRoutes {
+  start?: string;
+  list?: string;
+  detail?: (executionId: string) => string;
+}
+
 export interface AgentCatalogItem {
   id: string;
   number: number;
@@ -7,8 +21,13 @@ export interface AgentCatalogItem {
   shortName: string;
   description: string;
   stage: AgentStage;
-  command: string;
+  /** Caminho da definição do agent no formato de subagent do Claude Code. */
+  definitionPath: string;
   capabilities: string[];
+  integration: AgentIntegration;
+  routes?: AgentCatalogRoutes;
+  /** Frase exibida na estação quando o agent está apenas "apoiando" (cosmético, ainda não conectado). */
+  supportMessage: string;
 }
 
 export const AGENT_STAGES: Array<{ id: AgentStage; label: string; subtitle: string; tone: string }> = [
@@ -26,8 +45,15 @@ export const AGENTS_CATALOG: AgentCatalogItem[] = [
     shortName: 'Analisador de US',
     description: 'Analisa requisitos, mede a qualidade da US, levanta dúvidas e cria cenários orientados a risco.',
     stage: 'requisitos',
-    command: '/agent1-analisador-us',
+    definitionPath: '.claude/agents/agent1-analisador-us.md',
     capabilities: ['Gate de qualidade', 'Perguntas de refinamento', 'Cenários de teste'],
+    integration: 'live',
+    routes: {
+      start: '/agents/agent1-analisador-us',
+      list: '/agents/analises',
+      detail: (executionId) => `/agents/analises/${executionId}`,
+    },
+    supportMessage: 'Validando aderência à OS refinada.',
   },
   {
     id: 'agent3-engenheiro-reverso-frontend',
@@ -36,8 +62,10 @@ export const AGENTS_CATALOG: AgentCatalogItem[] = [
     shortName: 'Engenheiro Reverso',
     description: 'Navega nas telas, registra o comportamento observado e produz uma US reversa do produto.',
     stage: 'descoberta',
-    command: '/agent3-engenheiro-reverso-frontend',
+    definitionPath: '.claude/agents/agent3-engenheiro-reverso-frontend.md',
     capabilities: ['Navegação real', 'US reversa', 'Seletores e fluxos'],
+    integration: 'planned',
+    supportMessage: 'Revisando impacto nos fluxos de tela.',
   },
   {
     id: 'agent4-descobridor-endpoints',
@@ -46,8 +74,14 @@ export const AGENTS_CATALOG: AgentCatalogItem[] = [
     shortName: 'Descobridor de Endpoints',
     description: 'Cataloga chamadas de rede, normaliza endpoints e organiza o backlog técnico por prioridade.',
     stage: 'descoberta',
-    command: '/agent4-descobridor-endpoints',
+    definitionPath: '.claude/agents/agent4-descobridor-endpoints.md',
     capabilities: ['Catálogo de API', 'Priorização', 'Backlog de endpoints'],
+    integration: 'live',
+    routes: {
+      start: '/agents/descobridor-endpoints',
+      list: '/agents/endpoints',
+    },
+    supportMessage: 'Conferindo contratos e integrações.',
   },
   {
     id: 'agent2-desenhista-testes',
@@ -56,8 +90,13 @@ export const AGENTS_CATALOG: AgentCatalogItem[] = [
     shortName: 'Desenhista de Testes',
     description: 'Transforma a análise em cobertura, estrutura de automação e checklist de implementação.',
     stage: 'planejamento',
-    command: '/agent2-desenhista-testes',
+    definitionPath: '.claude/agents/agent2-desenhista-testes.md',
     capabilities: ['Análise de cobertura', 'Scaffolding', 'Mapeamento de cenários'],
+    integration: 'live',
+    routes: {
+      list: '/agents/planos-teste',
+    },
+    supportMessage: 'Validando aderência à OS refinada.',
   },
   {
     id: 'agent9-auditor',
@@ -66,8 +105,10 @@ export const AGENTS_CATALOG: AgentCatalogItem[] = [
     shortName: 'Auditor de Testes',
     description: 'Audita os guardrails da suíte e aponta testes frágeis antes que a execução seja iniciada.',
     stage: 'planejamento',
-    command: '/agent9-auditor',
+    definitionPath: '.claude/agents/agent9-auditor.md',
     capabilities: ['Guardrails', 'Qualidade da suíte', 'Mutation testing'],
+    integration: 'planned',
+    supportMessage: 'Auditando cobertura e guardrails.',
   },
   {
     id: 'agent5-executor-testes-api',
@@ -76,8 +117,10 @@ export const AGENTS_CATALOG: AgentCatalogItem[] = [
     shortName: 'Executor de Testes',
     description: 'Executa a suíte autorizada, coleta evidências e consolida os resultados da rodada.',
     stage: 'qualidade',
-    command: '/agent5-executor-testes-api',
+    definitionPath: '.claude/agents/agent5-executor-testes-api.md',
     capabilities: ['Execução de suíte', 'Evidências', 'Relatórios'],
+    integration: 'planned',
+    supportMessage: 'Preparando a estratégia de execução.',
   },
   {
     id: 'agent6-detetive-falhas',
@@ -86,8 +129,10 @@ export const AGENTS_CATALOG: AgentCatalogItem[] = [
     shortName: 'Detetive de Falhas',
     description: 'Investiga cada falha e distingue bug real, ambiente, flakiness e teste incorreto.',
     stage: 'qualidade',
-    command: '/agent6-detetive-falhas',
+    definitionPath: '.claude/agents/agent6-detetive-falhas.md',
     capabilities: ['Triage', 'Causa raiz', 'Flakiness'],
+    integration: 'planned',
+    supportMessage: 'Mapeando riscos e pontos de falha.',
   },
   {
     id: 'agent7-gerador-bug-report',
@@ -96,8 +141,14 @@ export const AGENTS_CATALOG: AgentCatalogItem[] = [
     shortName: 'Gerador de Bug Report',
     description: 'Transforma falhas confirmadas em relatos rastreáveis, completos e apoiados por evidências.',
     stage: 'qualidade',
-    command: '/agent7-gerador-bug-report',
+    definitionPath: '.claude/agents/agent7-gerador-bug-report.md',
     capabilities: ['Bug report', 'Evidência técnica', 'Índice de bugs'],
+    integration: 'live',
+    routes: {
+      start: '/agents/gerador-bug-report',
+      list: '/agents/bugs',
+    },
+    supportMessage: 'Organizando evidências e rastreabilidade.',
   },
   {
     id: 'agent8-retest',
@@ -106,7 +157,13 @@ export const AGENTS_CATALOG: AgentCatalogItem[] = [
     shortName: 'Retest',
     description: 'Confirma correções, verifica regressões e atualiza o estado final de cada bug.',
     stage: 'qualidade',
-    command: '/agent8-retest',
+    definitionPath: '.claude/agents/agent8-retest.md',
     capabilities: ['Confirmação de correção', 'Regressão', 'Encerramento'],
+    integration: 'planned',
+    supportMessage: 'Preparando critérios para o reteste.',
   },
 ];
+
+export const isLive = (agent: AgentCatalogItem) => agent.integration === 'live';
+export const LIVE_AGENTS = AGENTS_CATALOG.filter(isLive);
+export const AGENT_BY_ID = new Map(AGENTS_CATALOG.map((agent) => [agent.id, agent] as const));

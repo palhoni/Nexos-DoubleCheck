@@ -6,18 +6,18 @@ import {
   MinLength,
 } from 'class-validator';
 
-export class RunUsAnalyserDto {
+export class StartBugReportDto {
   @IsString()
   @IsNotEmpty()
   projetoId!: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(180)
-  titulo?: string;
+  @MaxLength(120)
+  tema?: string;
 
   @IsString()
   @MinLength(20)
-  @MaxLength(120_000)
-  requisito!: string;
+  @MaxLength(60_000)
+  evidencias!: string;
 }

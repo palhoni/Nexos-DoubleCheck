@@ -11,7 +11,7 @@ function numberLabel(value?: number) { return value === undefined ? 'Não inform
 
 function MonitoringSummary({ data }: { data: TestPlanMonitoring }) {
   return <div className="test-plan-monitoring">
-    <div><span>Término do modelo</span><strong className={data.finishReason === 'length' ? 'is-invalid' : data.finishReason === 'stop' ? 'is-valid' : ''}>{data.finishReason || 'Não informado'}</strong></div>
+    <div><span>Término do modelo</span><strong className={data.stopReason === 'max_tokens' || data.stopReason === 'refusal' ? 'is-invalid' : data.stopReason === 'end_turn' ? 'is-valid' : ''}>{data.stopReason || 'Não informado'}</strong></div>
     <div><span>JSON</span><strong className={data.jsonValid ? 'is-valid' : 'is-invalid'}>{data.jsonValid ? 'Válido' : 'Inválido'}</strong></div>
     <div><span>Contrato</span><strong className={data.contractValid ? 'is-valid' : 'is-invalid'}>{data.contractValid ? 'Completo' : 'Incompleto'}</strong></div>
     <div><span>Tokens entrada / saída</span><strong>{numberLabel(data.inputTokens)} / {numberLabel(data.outputTokens)}</strong></div>

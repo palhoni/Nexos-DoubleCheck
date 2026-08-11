@@ -26,7 +26,8 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
-    "@github/copilot-sdk": "^1.0.9",
+    "@anthropic-ai/claude-agent-sdk": "^0.3.228",
+    "@anthropic-ai/sdk": "^0.116.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.0.1",

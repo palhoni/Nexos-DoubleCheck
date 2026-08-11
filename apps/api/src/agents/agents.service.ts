@@ -1,20 +1,26 @@
-import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException, type OnModuleInit } from '@nestjs/common';
-import { CopilotClient, type CopilotSession, type PermissionHandler } from '@github/copilot-sdk';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+  type OnModuleInit,
+} from '@nestjs/common';
 import { Prisma, type AgentExecution } from '@prisma/client';
 import { PDFParse } from 'pdf-parse';
-import { existsSync, readFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
-import { resolve } from 'node:path';
 import { PrismaService } from '../prisma/prisma.service';
 import { RunUsAnalyserDto } from './dto/run-us-analyser.dto';
+import { AgentRunnerFactory } from './runtime/agent-runner.factory';
+import { loadAgentDefinition } from './runtime/agent-definition.loader';
+import { AgentTimeoutError } from './runtime/agent-runner.types';
+import type { ClaudeTextRunRequest } from './runtime/claude-text.runner';
+import {
+  extractCompletedObjects,
+  extractJsonSection,
+} from './runtime/json-salvage.util';
 
 const AGENT_NAME = 'agent1-analisador-us';
-const AGENT_FILE = `${AGENT_NAME}.md`;
 const DEFAULT_AGENT_TIMEOUT_MS = 15 * 60 * 1000;
-const DENY_ALL_TOOLS: PermissionHandler = () => ({
-  kind: 'reject',
-  feedback: 'Este agent opera apenas sobre o texto fornecido e não tem permissão para usar ferramentas.',
-});
 
 type StructuredAnalysis = {
   requisito: {
@@ -42,11 +48,28 @@ type StructuredAnalysis = {
     coerencia: { nota: number; justificativa: string };
     completude: { nota: number; justificativa: string };
     testabilidade: { nota: number; justificativa: string };
-    findings: Array<{ categoria: string; severidade: string; trecho: string; recomendacao: string }>;
+    findings: Array<{
+      categoria: string;
+      severidade: string;
+      trecho: string;
+      recomendacao: string;
+    }>;
     decisoesHumanas: string[];
   };
-  regrasNegocio: Array<{ id: string; regra: string; origem: string; status: string; risco: string }>;
-  perguntasRefinamento: Array<{ id: string; pergunta: string; trechoOrigem: string; riscoMitigado: string; criticidade: string }>;
+  regrasNegocio: Array<{
+    id: string;
+    regra: string;
+    origem: string;
+    status: string;
+    risco: string;
+  }>;
+  perguntasRefinamento: Array<{
+    id: string;
+    pergunta: string;
+    trechoOrigem: string;
+    riscoMitigado: string;
+    criticidade: string;
+  }>;
   cenariosTeste: Array<{
     id: string;
     titulo: string;
@@ -62,10 +85,21 @@ type StructuredAnalysis = {
 };
 
 type ExecutionStatus = 'queued' | 'processing' | 'completed' | 'failed';
-type ExecutionPhase = 'queued' | 'context' | 'copilot' | 'requirement' | 'gate' | 'rules' | 'questions' | 'scenarios' | 'structuring' | 'completed' | 'failed';
+type ExecutionPhase =
+  | 'queued'
+  | 'context'
+  | 'model'
+  | 'requirement'
+  | 'gate'
+  | 'rules'
+  | 'questions'
+  | 'scenarios'
+  | 'structuring'
+  | 'completed'
+  | 'failed';
 type AnalysisResult = {
   agent: string;
-  provider: 'GitHub Copilot';
+  provider: 'Anthropic';
   projeto: { id: string; nome: string; codigo: string };
   titulo: string;
   resultado: string;
@@ -100,11 +134,17 @@ type ExecutionActor = { userId: string; email: string };
 @Injectable()
 export class AgentsService implements OnModuleInit {
   private readonly jobs = new Map<string, AnalysisJob>();
-  private readonly persistTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private readonly persistTimers = new Map<
+    string,
+    ReturnType<typeof setTimeout>
+  >();
   private readonly persistChains = new Map<string, Promise<void>>();
   private readonly executionPromises = new Map<string, Promise<void>>();
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly runners: AgentRunnerFactory,
+  ) {}
 
   async onModuleInit() {
     await this.prisma.agentExecution.updateMany({
@@ -120,9 +160,17 @@ export class AgentsService implements OnModuleInit {
   }
 
   async extractRequirementFile(file?: Express.Multer.File) {
-    if (!file) throw new BadRequestException('Selecione um arquivo PDF exportado pelo Jira.');
-    const isPdf = file.mimetype === 'application/pdf' || file.originalname.toLowerCase().endsWith('.pdf');
-    if (!isPdf) throw new BadRequestException('Formato não suportado. Envie um arquivo PDF exportado pelo Jira.');
+    if (!file)
+      throw new BadRequestException(
+        'Selecione um arquivo PDF exportado pelo Jira.',
+      );
+    const isPdf =
+      file.mimetype === 'application/pdf' ||
+      file.originalname.toLowerCase().endsWith('.pdf');
+    if (!isPdf)
+      throw new BadRequestException(
+        'Formato não suportado. Envie um arquivo PDF exportado pelo Jira.',
+      );
 
     const parser = new PDFParse({ data: file.buffer });
     try {
@@ -135,20 +183,26 @@ export class AgentsService implements OnModuleInit {
         .replace(/\n{3,}/g, '\n\n')
         .trim();
       if (texto.length < 20) {
-        throw new BadRequestException('O PDF não contém texto pesquisável. Exporte a issue pelo Jira em vez de usar uma imagem digitalizada.');
+        throw new BadRequestException(
+          'O PDF não contém texto pesquisável. Exporte a issue pelo Jira em vez de usar uma imagem digitalizada.',
+        );
       }
-      const identifier = file.originalname.match(/#?([A-Z][A-Z0-9]{1,15}-\d+)/i)?.[1]
-        ?? texto.match(/\b([A-Z][A-Z0-9]{1,15}-\d+)\b/i)?.[1];
+      const identifier =
+        file.originalname.match(/#?([A-Z][A-Z0-9]{1,15}-\d+)/i)?.[1] ??
+        texto.match(/\b([A-Z][A-Z0-9]{1,15}-\d+)\b/i)?.[1];
       return {
         nome: file.originalname,
         texto: texto.slice(0, 120_000),
         paginas: extracted.total,
-        tituloSugerido: identifier?.toUpperCase() ?? file.originalname.replace(/\.pdf$/i, ''),
+        tituloSugerido:
+          identifier?.toUpperCase() ?? file.originalname.replace(/\.pdf$/i, ''),
         truncado: texto.length > 120_000,
       };
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
-      throw new BadRequestException(`Não foi possível ler o PDF exportado pelo Jira: ${error instanceof Error ? error.message : 'arquivo inválido'}`);
+      throw new BadRequestException(
+        `Não foi possível ler o PDF exportado pelo Jira: ${error instanceof Error ? error.message : 'arquivo inválido'}`,
+      );
     } finally {
       await parser.destroy();
     }
@@ -176,7 +230,7 @@ export class AgentsService implements OnModuleInit {
       data: {
         id: job.id,
         agent: AGENT_NAME,
-        provider: 'GitHub Copilot',
+        provider: 'Anthropic',
         projetoId: job.projetoId,
         actorUserId: job.actorUserId,
         titulo: job.titulo,
@@ -190,7 +244,9 @@ export class AgentsService implements OnModuleInit {
     this.jobs.set(job.id, job);
     const execution = this.executeJob(job, dto);
     this.executionPromises.set(job.id, execution);
-    void execution.finally(() => this.executionPromises.delete(job.id)).catch(() => undefined);
+    void execution
+      .finally(() => this.executionPromises.delete(job.id))
+      .catch(() => undefined);
     return this.publicJob(job);
   }
 
@@ -198,14 +254,20 @@ export class AgentsService implements OnModuleInit {
     const job = this.jobs.get(id);
     if (job && job.actorUserId === actorUserId) return this.publicJob(job);
 
-    const saved = await this.prisma.agentExecution.findFirst({ where: { id, actorUserId } });
+    const saved = await this.prisma.agentExecution.findFirst({
+      where: { id, actorUserId },
+    });
     if (!saved) throw new NotFoundException('Execução do agent não encontrada');
     return this.publicJob(this.jobFromRecord(saved));
   }
 
   async listExecutions(actorUserId: string, projetoId?: string) {
     const rows = await this.prisma.agentExecution.findMany({
-      where: { actorUserId, agent: AGENT_NAME, ...(projetoId ? { projetoId } : {}) },
+      where: {
+        actorUserId,
+        agent: AGENT_NAME,
+        ...(projetoId ? { projetoId } : {}),
+      },
       orderBy: { createdAt: 'desc' },
       take: 30,
       select: {
@@ -227,7 +289,13 @@ export class AgentsService implements OnModuleInit {
     return rows.map(({ result, ...row }) => ({
       ...row,
       hasResult: result !== null,
-      parcial: Boolean(result && typeof result === 'object' && !Array.isArray(result) && 'parcial' in result && result.parcial),
+      parcial: Boolean(
+        result &&
+        typeof result === 'object' &&
+        !Array.isArray(result) &&
+        'parcial' in result &&
+        result.parcial,
+      ),
     }));
   }
 
@@ -236,21 +304,28 @@ export class AgentsService implements OnModuleInit {
     await this.executionPromises.get(started.id);
     const job = this.jobs.get(started.id);
     if (job?.result) return job.result;
-    throw new InternalServerErrorException(job?.error || 'O agent não conseguiu produzir um resultado.');
+    throw new InternalServerErrorException(
+      job?.error || 'O agent não conseguiu produzir um resultado.',
+    );
   }
 
   private async executeJob(job: AnalysisJob, dto: RunUsAnalyserDto) {
     try {
-      const result = await this.executeAnalysis(dto, job.actorEmail, (phase, progress, message, delta) => {
-        job.status = 'processing';
-        job.startedAt ??= new Date().toISOString();
-        job.phase = phase;
-        job.progress = progress;
-        job.message = message;
-        if (delta) job.partialContent += delta;
-        job.updatedAt = new Date().toISOString();
-        this.schedulePersistence(job);
-      });
+      const result = await this.executeAnalysis(
+        job.id,
+        dto,
+        job.actorEmail,
+        (phase, progress, message, delta) => {
+          job.status = 'processing';
+          job.startedAt ??= new Date().toISOString();
+          job.phase = phase;
+          job.progress = progress;
+          job.message = message;
+          if (delta) job.partialContent += delta;
+          job.updatedAt = new Date().toISOString();
+          this.schedulePersistence(job);
+        },
+      );
       job.result = result;
       job.status = 'completed';
       job.phase = 'completed';
@@ -259,13 +334,23 @@ export class AgentsService implements OnModuleInit {
       job.updatedAt = new Date().toISOString();
       job.completedAt = job.updatedAt;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Falha desconhecida no GitHub Copilot';
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Falha desconhecida ao executar o Analisador de US';
       job.status = 'failed';
       job.phase = 'failed';
-      job.message = job.partialContent.trim() ? 'A execução foi interrompida, mas o conteúdo processado foi preservado.' : 'A análise não pôde ser concluída.';
+      job.message = job.partialContent.trim()
+        ? 'A execução foi interrompida, mas o conteúdo processado foi preservado.'
+        : 'A análise não pôde ser concluída.';
       job.error = errorMessage;
       if (job.partialContent.trim()) {
-        job.result = await this.buildPartialResult(dto, job.partialContent, job.createdAt, errorMessage).catch(() => undefined);
+        job.result = await this.buildPartialResult(
+          dto,
+          job.partialContent,
+          job.createdAt,
+          errorMessage,
+        ).catch(() => undefined);
       }
       job.updatedAt = new Date().toISOString();
       job.completedAt = job.updatedAt;
@@ -275,9 +360,15 @@ export class AgentsService implements OnModuleInit {
   }
 
   private async executeAnalysis(
+    executionId: string,
     dto: RunUsAnalyserDto,
     actorEmail: string,
-    report: (phase: ExecutionPhase, progress: number, message: string, delta?: string) => void,
+    report: (
+      phase: ExecutionPhase,
+      progress: number,
+      message: string,
+      delta?: string,
+    ) => void,
   ): Promise<AnalysisResult> {
     report('context', 8, 'Carregando o contexto isolado do projeto...');
     const projeto = await this.prisma.projeto.findUnique({
@@ -297,58 +388,70 @@ export class AgentsService implements OnModuleInit {
       },
     });
 
-    if (!projeto) throw new NotFoundException(`Projeto ${dto.projetoId} não encontrado`);
+    if (!projeto)
+      throw new NotFoundException(`Projeto ${dto.projetoId} não encontrado`);
 
-    const { prompt: agentPrompt, workingDirectory } = this.loadAgentPrompt();
-    const client = new CopilotClient({
-      workingDirectory,
-      useLoggedInUser: true,
-      logLevel: 'error',
-    });
-    let session: CopilotSession | undefined;
-    let unsubscribe: (() => void) | undefined;
-    let streamedContent = '';
+    const definition = loadAgentDefinition(AGENT_NAME);
     const timeoutMs = this.agentTimeoutMs();
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    let streamedContent = '';
 
     try {
-      report('copilot', 15, 'Conectando ao GitHub Copilot...');
-      await client.start();
-      session = await client.createSession({
-        customAgents: [{
-          name: AGENT_NAME,
-          displayName: 'Analisador de US',
-          description: 'Analisa requisitos funcionais e produz gate, dúvidas, riscos e cenários de teste.',
-          tools: [],
-          prompt: agentPrompt,
-        }],
-        agent: AGENT_NAME,
-        workingDirectory,
-        onPermissionRequest: DENY_ALL_TOOLS,
-        streaming: true,
-      });
-
-      report('requirement', 23, 'O agent está lendo e classificando o requisito...');
-      unsubscribe = session.on('assistant.message_delta', (event) => {
-        const delta = event.data.deltaContent;
-        streamedContent += delta;
-        report(this.detectPhase(streamedContent), Math.min(88, 23 + Math.floor(streamedContent.length / 420)), 'Recebendo a análise do agent...', delta);
-      });
-
+      report('model', 15, 'Conectando ao Claude...');
+      const runner = this.runners.for(AGENT_NAME);
       const startedAt = Date.now();
-      const response = await session.sendAndWait({
-        prompt: this.buildExecutionPrompt(dto, projeto, actorEmail),
-      }, timeoutMs);
 
-      const resultado = response?.data.content?.trim();
-      if (!resultado) {
-        throw new Error('O GitHub Copilot concluiu a sessão sem retornar conteúdo.');
+      const runRequest: ClaudeTextRunRequest = {
+        agentId: AGENT_NAME,
+        executionId,
+        system: [
+          { text: definition.systemPrompt, cache: true },
+          { text: this.buildExecutionRules(), cache: true },
+        ],
+        userPrompt: this.buildUserPrompt(dto, projeto, actorEmail),
+        timeoutMs,
+        signal: controller.signal,
+        hooks: {
+          onText: (delta) => {
+            streamedContent += delta;
+            report(
+              this.detectPhase(streamedContent),
+              Math.min(88, 23 + Math.floor(streamedContent.length / 420)),
+              'Recebendo a análise do agent...',
+              delta,
+            );
+          },
+        },
+      };
+
+      report(
+        'requirement',
+        23,
+        'O agent está lendo e classificando o requisito...',
+      );
+      const run = await runner.run(runRequest);
+
+      if (run.stopReason === 'refusal') {
+        throw new Error(
+          `O Claude recusou processar esta solicitação por política de segurança${run.stopCategory ? ` (categoria: ${run.stopCategory})` : ''}.`,
+        );
       }
 
-      report('structuring', 94, 'Organizando o resultado nas seções visuais...');
+      const resultado = run.text.trim();
+      if (!resultado) {
+        throw new Error('O Claude concluiu a execução sem retornar conteúdo.');
+      }
+
+      report(
+        'structuring',
+        94,
+        'Organizando o resultado nas seções visuais...',
+      );
 
       return {
         agent: AGENT_NAME,
-        provider: 'GitHub Copilot',
+        provider: 'Anthropic',
         projeto: { id: projeto.id, nome: projeto.nome, codigo: projeto.codigo },
         titulo: dto.titulo?.trim() || 'Requisito funcional',
         resultado,
@@ -357,22 +460,31 @@ export class AgentsService implements OnModuleInit {
         executadoEm: new Date().toISOString(),
       };
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Falha desconhecida no GitHub Copilot';
-      if (/timeout after \d+ms waiting for session\.idle/i.test(message)) {
+      if (error instanceof AgentTimeoutError) {
         const timeoutMinutes = Math.round(timeoutMs / 60_000);
-        throw new InternalServerErrorException(`A análise ultrapassou o limite de ${timeoutMinutes} minutos sem concluir. O conteúdo enviado é extenso; tente novamente ou reduza o requisito se o problema persistir.`);
+        throw new InternalServerErrorException(
+          `A análise ultrapassou o limite de ${timeoutMinutes} minutos sem concluir. O conteúdo enviado é extenso; tente novamente ou reduza o requisito se o problema persistir.`,
+        );
       }
-      throw new InternalServerErrorException(`Não foi possível executar o Analisador de US pelo GitHub Copilot: ${message}`);
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Falha desconhecida ao executar o Analisador de US';
+      throw new InternalServerErrorException(
+        `Não foi possível executar o Analisador de US pelo Claude: ${message}`,
+      );
     } finally {
-      unsubscribe?.();
-      if (session) await session.disconnect().catch(() => undefined);
-      await client.stop().catch(() => undefined);
+      clearTimeout(timer);
     }
   }
 
   private agentTimeoutMs() {
-    const configured = Number(process.env.COPILOT_AGENT_TIMEOUT_MS);
-    return Number.isFinite(configured) && configured >= 60_000 ? configured : DEFAULT_AGENT_TIMEOUT_MS;
+    const configured = Number(
+      process.env.AGENT_TIMEOUT_MS ?? process.env.COPILOT_AGENT_TIMEOUT_MS,
+    );
+    return Number.isFinite(configured) && configured >= 60_000
+      ? configured
+      : DEFAULT_AGENT_TIMEOUT_MS;
   }
 
   private detectPhase(content: string): ExecutionPhase {
@@ -380,7 +492,7 @@ export class AgentsService implements OnModuleInit {
     if (content.includes('"perguntasRefinamento"')) return 'questions';
     if (content.includes('"regrasNegocio"')) return 'rules';
     if (content.includes('"gate"')) return 'gate';
-    return content.length > 0 ? 'requirement' : 'copilot';
+    return content.length > 0 ? 'requirement' : 'model';
   }
 
   private schedulePersistence(job: AnalysisJob) {
@@ -406,23 +518,33 @@ export class AgentsService implements OnModuleInit {
       progress: job.progress,
       message: job.message,
       partialContent: job.partialContent,
-      result: job.result ? JSON.parse(JSON.stringify(job.result)) as Prisma.InputJsonValue : Prisma.DbNull,
+      result: job.result
+        ? (JSON.parse(JSON.stringify(job.result)) as Prisma.InputJsonValue)
+        : Prisma.DbNull,
       error: job.error ?? null,
       startedAt: job.startedAt ? new Date(job.startedAt) : null,
       completedAt: job.completedAt ? new Date(job.completedAt) : null,
     };
     const previous = this.persistChains.get(job.id) ?? Promise.resolve();
-    const next = previous.catch(() => undefined).then(async () => {
-      await this.prisma.agentExecution.update({ where: { id: job.id }, data: snapshot });
-    });
+    const next = previous
+      .catch(() => undefined)
+      .then(async () => {
+        await this.prisma.agentExecution.update({
+          where: { id: job.id },
+          data: snapshot,
+        });
+      });
     this.persistChains.set(job.id, next);
     return next;
   }
 
   private jobFromRecord(record: AgentExecution): AnalysisJob {
-    let result = record.result && typeof record.result === 'object' && !Array.isArray(record.result)
-      ? record.result as unknown as AnalysisResult
-      : undefined;
+    let result =
+      record.result &&
+      typeof record.result === 'object' &&
+      !Array.isArray(record.result)
+        ? (record.result as unknown as AnalysisResult)
+        : undefined;
     if (result?.analise) {
       result = {
         ...result,
@@ -457,8 +579,12 @@ export class AgentsService implements OnModuleInit {
   private publicJob(job: AnalysisJob) {
     const content = job.partialContent;
     const count = (pattern: RegExp) => (content.match(pattern) ?? []).length;
-    const gateStatus = content.match(/"status"\s*:\s*"(PASS|CONDITIONAL|FAIL)"/)?.[1] ?? null;
-    const title = content.match(/"titulo"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/)?.[1]?.replace(/\\"/g, '"') ?? null;
+    const gateStatus =
+      content.match(/"status"\s*:\s*"(PASS|CONDITIONAL|FAIL)"/)?.[1] ?? null;
+    const title =
+      content
+        .match(/"titulo"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/)?.[1]
+        ?.replace(/\\"/g, '"') ?? null;
     return {
       id: job.id,
       status: job.status,
@@ -487,8 +613,14 @@ export class AgentsService implements OnModuleInit {
     }
   }
 
-  private parseStructuredAnalysis(raw: string, dto: RunUsAnalyserDto): StructuredAnalysis {
-    const withoutFence = raw.replace(/^\s*```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
+  private parseStructuredAnalysis(
+    raw: string,
+    dto: RunUsAnalyserDto,
+  ): StructuredAnalysis {
+    const withoutFence = raw
+      .replace(/^\s*```(?:json)?\s*/i, '')
+      .replace(/\s*```\s*$/i, '')
+      .trim();
     const start = withoutFence.indexOf('{');
     const end = withoutFence.lastIndexOf('}');
 
@@ -501,7 +633,12 @@ export class AgentsService implements OnModuleInit {
       for (const candidate of [json, repairedJson]) {
         try {
           const parsed = JSON.parse(candidate) as StructuredAnalysis;
-          if (parsed.requisito && parsed.gate && Array.isArray(parsed.perguntasRefinamento) && Array.isArray(parsed.cenariosTeste)) {
+          if (
+            parsed.requisito &&
+            parsed.gate &&
+            Array.isArray(parsed.perguntasRefinamento) &&
+            Array.isArray(parsed.cenariosTeste)
+          ) {
             return this.normalizeStructuredAnalysis(parsed, dto);
           }
         } catch {
@@ -514,14 +651,16 @@ export class AgentsService implements OnModuleInit {
       requisito: {
         identificador: dto.titulo?.trim() || 'Não informado',
         titulo: dto.titulo?.trim() || 'Requisito funcional',
-        resumo: 'A análise foi concluída, mas o retorno não veio no novo formato estruturado. Consulte o relatório técnico nesta execução.',
+        resumo:
+          'A análise foi concluída, mas o retorno não veio no novo formato estruturado. Consulte o relatório técnico nesta execução.',
         modo: 'Não classificado',
         escopo: 'Não classificado',
         criteriosAceite: [],
       },
       requisitoReescrito: {
         titulo: dto.titulo?.trim() || 'Requisito funcional',
-        historiaUsuario: 'Disponível após uma nova execução no formato estruturado.',
+        historiaUsuario:
+          'Disponível após uma nova execução no formato estruturado.',
         contexto: 'Consulte o relatório técnico desta execução.',
         objetivo: 'Não informado.',
         escopoIncluido: [],
@@ -533,9 +672,18 @@ export class AgentsService implements OnModuleInit {
       },
       gate: {
         status: 'CONDITIONAL',
-        coerencia: { nota: 0, justificativa: 'Disponível no relatório técnico.' },
-        completude: { nota: 0, justificativa: 'Disponível no relatório técnico.' },
-        testabilidade: { nota: 0, justificativa: 'Disponível no relatório técnico.' },
+        coerencia: {
+          nota: 0,
+          justificativa: 'Disponível no relatório técnico.',
+        },
+        completude: {
+          nota: 0,
+          justificativa: 'Disponível no relatório técnico.',
+        },
+        testabilidade: {
+          nota: 0,
+          justificativa: 'Disponível no relatório técnico.',
+        },
         findings: [],
         decisoesHumanas: [],
       },
@@ -546,116 +694,77 @@ export class AgentsService implements OnModuleInit {
     });
   }
 
-  private parsePartialStructuredAnalysis(raw: string, dto: RunUsAnalyserDto): StructuredAnalysis {
+  private parsePartialStructuredAnalysis(
+    raw: string,
+    dto: RunUsAnalyserDto,
+  ): StructuredAnalysis {
     return this.parseStructuredAnalysis(raw, dto);
   }
 
-  private mergePartialSections(raw: string, dto: RunUsAnalyserDto, base: StructuredAnalysis): StructuredAnalysis {
+  private mergePartialSections(
+    raw: string,
+    dto: RunUsAnalyserDto,
+    base: StructuredAnalysis,
+  ): StructuredAnalysis {
     const repairedRaw = raw
       .replace(/(:\s*)\\"/g, '$1"')
       .replace(/\\"(?=\s*[,}\]])/g, '"');
-    const requisito = this.extractJsonSection<StructuredAnalysis['requisito']>(repairedRaw, 'requisito');
-    const requisitoReescrito = this.extractJsonSection<StructuredAnalysis['requisitoReescrito']>(repairedRaw, 'requisitoReescrito');
-    const gate = this.extractJsonSection<StructuredAnalysis['gate']>(repairedRaw, 'gate');
-    const regrasNegocio = this.extractJsonSection<StructuredAnalysis['regrasNegocio']>(repairedRaw, 'regrasNegocio')
-      ?? this.extractCompletedObjects<StructuredAnalysis['regrasNegocio'][number]>(repairedRaw, 'regrasNegocio');
-    const perguntasRefinamento = this.extractJsonSection<StructuredAnalysis['perguntasRefinamento']>(repairedRaw, 'perguntasRefinamento')
-      ?? this.extractCompletedObjects<StructuredAnalysis['perguntasRefinamento'][number]>(repairedRaw, 'perguntasRefinamento');
-    const cenariosTeste = this.extractJsonSection<StructuredAnalysis['cenariosTeste']>(repairedRaw, 'cenariosTeste')
-      ?? this.extractCompletedObjects<StructuredAnalysis['cenariosTeste'][number]>(repairedRaw, 'cenariosTeste');
+    const requisito = extractJsonSection<StructuredAnalysis['requisito']>(
+      repairedRaw,
+      'requisito',
+    );
+    const requisitoReescrito = extractJsonSection<
+      StructuredAnalysis['requisitoReescrito']
+    >(repairedRaw, 'requisitoReescrito');
+    const gate = extractJsonSection<StructuredAnalysis['gate']>(
+      repairedRaw,
+      'gate',
+    );
+    const regrasNegocio =
+      extractJsonSection<StructuredAnalysis['regrasNegocio']>(
+        repairedRaw,
+        'regrasNegocio',
+      ) ??
+      extractCompletedObjects<StructuredAnalysis['regrasNegocio'][number]>(
+        repairedRaw,
+        'regrasNegocio',
+      );
+    const perguntasRefinamento =
+      extractJsonSection<StructuredAnalysis['perguntasRefinamento']>(
+        repairedRaw,
+        'perguntasRefinamento',
+      ) ??
+      extractCompletedObjects<
+        StructuredAnalysis['perguntasRefinamento'][number]
+      >(repairedRaw, 'perguntasRefinamento');
+    const cenariosTeste =
+      extractJsonSection<StructuredAnalysis['cenariosTeste']>(
+        repairedRaw,
+        'cenariosTeste',
+      ) ??
+      extractCompletedObjects<StructuredAnalysis['cenariosTeste'][number]>(
+        repairedRaw,
+        'cenariosTeste',
+      );
 
-    return this.normalizeStructuredAnalysis({
-      ...base,
-      requisito: requisito ?? base.requisito,
-      requisitoReescrito: requisitoReescrito ?? base.requisitoReescrito,
-      gate: gate ?? base.gate,
-      regrasNegocio: regrasNegocio.length ? regrasNegocio : base.regrasNegocio,
-      perguntasRefinamento: perguntasRefinamento.length ? perguntasRefinamento : base.perguntasRefinamento,
-      cenariosTeste: cenariosTeste.length ? cenariosTeste : base.cenariosTeste,
-    }, dto);
-  }
-
-  private extractJsonSection<T>(raw: string, key: string): T | undefined {
-    const keyIndex = raw.indexOf(`"${key}"`);
-    if (keyIndex < 0) return undefined;
-    const colonIndex = raw.indexOf(':', keyIndex + key.length + 2);
-    if (colonIndex < 0) return undefined;
-    const start = raw.slice(colonIndex + 1).search(/[\[{]/);
-    if (start < 0) return undefined;
-    const absoluteStart = colonIndex + 1 + start;
-    const stack: string[] = [];
-    let inString = false;
-    let escaped = false;
-
-    for (let index = absoluteStart; index < raw.length; index += 1) {
-      const char = raw[index];
-      if (inString) {
-        if (escaped) escaped = false;
-        else if (char === '\\') escaped = true;
-        else if (char === '"') inString = false;
-        continue;
-      }
-      if (char === '"') inString = true;
-      else if (char === '{' || char === '[') stack.push(char);
-      else if (char === '}' || char === ']') {
-        stack.pop();
-        if (stack.length === 0) return this.tryParseJson<T>(raw.slice(absoluteStart, index + 1));
-      }
-    }
-    return undefined;
-  }
-
-  private extractCompletedObjects<T>(raw: string, key: string): T[] {
-    const keyIndex = raw.indexOf(`"${key}"`);
-    if (keyIndex < 0) return [];
-    const arrayStart = raw.indexOf('[', keyIndex + key.length + 2);
-    if (arrayStart < 0) return [];
-    const results: T[] = [];
-    const stack: string[] = [];
-    let itemStart = -1;
-    let inString = false;
-    let escaped = false;
-
-    for (let index = arrayStart; index < raw.length; index += 1) {
-      const char = raw[index];
-      if (inString) {
-        if (escaped) escaped = false;
-        else if (char === '\\') escaped = true;
-        else if (char === '"') inString = false;
-        continue;
-      }
-      if (char === '"') inString = true;
-      else if (char === '[') stack.push(char);
-      else if (char === '{') {
-        if (stack.length === 1) itemStart = index;
-        stack.push(char);
-      } else if (char === '}') {
-        if (stack.length === 2 && itemStart >= 0) {
-          const parsed = this.tryParseJson<T>(raw.slice(itemStart, index + 1));
-          if (parsed) results.push(parsed);
-          itemStart = -1;
-        }
-        stack.pop();
-      } else if (char === ']') {
-        stack.pop();
-        if (stack.length === 0) break;
-      }
-    }
-    return results;
-  }
-
-  private tryParseJson<T>(value: string): T | undefined {
-    const repaired = value
-      .replace(/(:\s*)\\"/g, '$1"')
-      .replace(/\\"(?=\s*[,}\]])/g, '"');
-    for (const candidate of [value, repaired]) {
-      try {
-        return JSON.parse(candidate) as T;
-      } catch {
-        // Tenta o próximo candidato.
-      }
-    }
-    return undefined;
+    return this.normalizeStructuredAnalysis(
+      {
+        ...base,
+        requisito: requisito ?? base.requisito,
+        requisitoReescrito: requisitoReescrito ?? base.requisitoReescrito,
+        gate: gate ?? base.gate,
+        regrasNegocio: regrasNegocio.length
+          ? regrasNegocio
+          : base.regrasNegocio,
+        perguntasRefinamento: perguntasRefinamento.length
+          ? perguntasRefinamento
+          : base.perguntasRefinamento,
+        cenariosTeste: cenariosTeste.length
+          ? cenariosTeste
+          : base.cenariosTeste,
+      },
+      dto,
+    );
   }
 
   private async buildPartialResult(
@@ -668,10 +777,11 @@ export class AgentsService implements OnModuleInit {
       where: { id: dto.projetoId },
       select: { id: true, nome: true, codigo: true },
     });
-    if (!projeto) throw new NotFoundException(`Projeto ${dto.projetoId} não encontrado`);
+    if (!projeto)
+      throw new NotFoundException(`Projeto ${dto.projetoId} não encontrado`);
     return {
       agent: AGENT_NAME,
-      provider: 'GitHub Copilot',
+      provider: 'Anthropic',
       projeto,
       titulo: dto.titulo?.trim() || 'Requisito funcional',
       resultado: content,
@@ -697,9 +807,15 @@ export class AgentsService implements OnModuleInit {
 
   private sanitizeAgentValue<T>(value: T): T {
     if (typeof value === 'string') return this.cleanAgentText(value) as T;
-    if (Array.isArray(value)) return value.map((item) => this.sanitizeAgentValue(item)) as T;
+    if (Array.isArray(value))
+      return value.map((item: unknown) => this.sanitizeAgentValue(item)) as T;
     if (value && typeof value === 'object') {
-      return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, this.sanitizeAgentValue(item)])) as T;
+      return Object.fromEntries(
+        Object.entries(value).map(([key, item]) => [
+          key,
+          this.sanitizeAgentValue(item),
+        ]),
+      ) as T;
     }
     return value;
   }
@@ -708,79 +824,113 @@ export class AgentsService implements OnModuleInit {
     const cleaned = this.cleanAgentText(value || fallback || 'Não informado');
     const ticket = cleaned.match(/\b[A-Z][A-Z0-9]{1,15}-\d+\b/i)?.[0];
     if (ticket) return ticket.toUpperCase();
-    return cleaned.replace(/^identificador\s*:?\s*/i, '').trim() || 'Não informado';
+    return (
+      cleaned.replace(/^identificador\s*:?\s*/i, '').trim() || 'Não informado'
+    );
   }
 
-  private normalizeStructuredAnalysis(parsed: StructuredAnalysis, dto: RunUsAnalyserDto): StructuredAnalysis {
+  private normalizeStructuredAnalysis(
+    parsed: StructuredAnalysis,
+    dto: RunUsAnalyserDto,
+  ): StructuredAnalysis {
     parsed = this.sanitizeAgentValue(parsed);
     return {
       requisito: {
-        identificador: this.normalizeIdentifier(parsed.requisito.identificador, dto.titulo?.trim()),
-        titulo: parsed.requisito.titulo || dto.titulo?.trim() || 'Requisito funcional',
+        identificador: this.normalizeIdentifier(
+          parsed.requisito.identificador,
+          dto.titulo?.trim(),
+        ),
+        titulo:
+          parsed.requisito.titulo ||
+          dto.titulo?.trim() ||
+          'Requisito funcional',
         resumo: parsed.requisito.resumo || 'Resumo não informado pelo agent.',
         modo: parsed.requisito.modo || 'Não classificado',
         escopo: parsed.requisito.escopo || 'Não classificado',
-        criteriosAceite: Array.isArray(parsed.requisito.criteriosAceite) ? parsed.requisito.criteriosAceite : [],
+        criteriosAceite: Array.isArray(parsed.requisito.criteriosAceite)
+          ? parsed.requisito.criteriosAceite
+          : [],
       },
       requisitoReescrito: {
-        titulo: parsed.requisitoReescrito?.titulo || parsed.requisito.titulo || dto.titulo?.trim() || 'Requisito funcional',
-        historiaUsuario: parsed.requisitoReescrito?.historiaUsuario || 'Não informada pelo agent.',
-        contexto: parsed.requisitoReescrito?.contexto || parsed.requisito.resumo || 'Não informado.',
+        titulo:
+          parsed.requisitoReescrito?.titulo ||
+          parsed.requisito.titulo ||
+          dto.titulo?.trim() ||
+          'Requisito funcional',
+        historiaUsuario:
+          parsed.requisitoReescrito?.historiaUsuario ||
+          'Não informada pelo agent.',
+        contexto:
+          parsed.requisitoReescrito?.contexto ||
+          parsed.requisito.resumo ||
+          'Não informado.',
         objetivo: parsed.requisitoReescrito?.objetivo || 'Não informado.',
-        escopoIncluido: Array.isArray(parsed.requisitoReescrito?.escopoIncluido) ? parsed.requisitoReescrito.escopoIncluido : [],
-        escopoFora: Array.isArray(parsed.requisitoReescrito?.escopoFora) ? parsed.requisitoReescrito.escopoFora : [],
-        criteriosAceite: Array.isArray(parsed.requisitoReescrito?.criteriosAceite) ? parsed.requisitoReescrito.criteriosAceite : [],
-        dependencias: Array.isArray(parsed.requisitoReescrito?.dependencias) ? parsed.requisitoReescrito.dependencias : [],
-        premissas: Array.isArray(parsed.requisitoReescrito?.premissas) ? parsed.requisitoReescrito.premissas : [],
-        pendencias: Array.isArray(parsed.requisitoReescrito?.pendencias) ? parsed.requisitoReescrito.pendencias : [],
+        escopoIncluido: Array.isArray(parsed.requisitoReescrito?.escopoIncluido)
+          ? parsed.requisitoReescrito.escopoIncluido
+          : [],
+        escopoFora: Array.isArray(parsed.requisitoReescrito?.escopoFora)
+          ? parsed.requisitoReescrito.escopoFora
+          : [],
+        criteriosAceite: Array.isArray(
+          parsed.requisitoReescrito?.criteriosAceite,
+        )
+          ? parsed.requisitoReescrito.criteriosAceite
+          : [],
+        dependencias: Array.isArray(parsed.requisitoReescrito?.dependencias)
+          ? parsed.requisitoReescrito.dependencias
+          : [],
+        premissas: Array.isArray(parsed.requisitoReescrito?.premissas)
+          ? parsed.requisitoReescrito.premissas
+          : [],
+        pendencias: Array.isArray(parsed.requisitoReescrito?.pendencias)
+          ? parsed.requisitoReescrito.pendencias
+          : [],
       },
       gate: {
-        status: ['PASS', 'CONDITIONAL', 'FAIL'].includes(parsed.gate.status) ? parsed.gate.status : 'CONDITIONAL',
-        coerencia: parsed.gate.coerencia ?? { nota: 0, justificativa: 'Não avaliada.' },
-        completude: parsed.gate.completude ?? { nota: 0, justificativa: 'Não avaliada.' },
-        testabilidade: parsed.gate.testabilidade ?? { nota: 0, justificativa: 'Não avaliada.' },
-        findings: Array.isArray(parsed.gate.findings) ? parsed.gate.findings : [],
-        decisoesHumanas: Array.isArray(parsed.gate.decisoesHumanas) ? parsed.gate.decisoesHumanas : [],
+        status: ['PASS', 'CONDITIONAL', 'FAIL'].includes(parsed.gate.status)
+          ? parsed.gate.status
+          : 'CONDITIONAL',
+        coerencia: parsed.gate.coerencia ?? {
+          nota: 0,
+          justificativa: 'Não avaliada.',
+        },
+        completude: parsed.gate.completude ?? {
+          nota: 0,
+          justificativa: 'Não avaliada.',
+        },
+        testabilidade: parsed.gate.testabilidade ?? {
+          nota: 0,
+          justificativa: 'Não avaliada.',
+        },
+        findings: Array.isArray(parsed.gate.findings)
+          ? parsed.gate.findings
+          : [],
+        decisoesHumanas: Array.isArray(parsed.gate.decisoesHumanas)
+          ? parsed.gate.decisoesHumanas
+          : [],
       },
-      regrasNegocio: Array.isArray(parsed.regrasNegocio) ? parsed.regrasNegocio : [],
-      perguntasRefinamento: Array.isArray(parsed.perguntasRefinamento) ? parsed.perguntasRefinamento : [],
-      cenariosTeste: Array.isArray(parsed.cenariosTeste) ? parsed.cenariosTeste : [],
-      riscosAdicionais: Array.isArray(parsed.riscosAdicionais) ? parsed.riscosAdicionais : [],
+      regrasNegocio: Array.isArray(parsed.regrasNegocio)
+        ? parsed.regrasNegocio
+        : [],
+      perguntasRefinamento: Array.isArray(parsed.perguntasRefinamento)
+        ? parsed.perguntasRefinamento
+        : [],
+      cenariosTeste: Array.isArray(parsed.cenariosTeste)
+        ? parsed.cenariosTeste
+        : [],
+      riscosAdicionais: Array.isArray(parsed.riscosAdicionais)
+        ? parsed.riscosAdicionais
+        : [],
     };
   }
 
-  private loadAgentPrompt() {
-    const candidates = [
-      resolve(process.cwd(), 'agents', '.github', 'agents'),
-      resolve(process.cwd(), '..', '..', 'agents', '.github', 'agents'),
-    ];
-    const workingDirectory = candidates.find((candidate) => existsSync(resolve(candidate, AGENT_FILE)));
-    if (!workingDirectory) {
-      throw new InternalServerErrorException(`Definição do agent ${AGENT_FILE} não encontrada.`);
-    }
-    return {
-      workingDirectory,
-      prompt: readFileSync(resolve(workingDirectory, AGENT_FILE), 'utf8'),
-    };
-  }
-
-  private buildExecutionPrompt(
-    dto: RunUsAnalyserDto,
-    projeto: {
-      nome: string;
-      codigo: string;
-      status: string;
-      descricao: string | null;
-      objetivo: string | null;
-      areaNegocio: string | null;
-      idiomas: string[];
-      paisesDisponiveis: string[];
-      responsavelPrincipal: string | null;
-      _count: { times: number; pessoas: number; produtos: number };
-    },
-    actorEmail: string,
-  ) {
-    return `Execute a análise do requisito abaixo em PT-BR, seguindo integralmente sua definição de agent.
+  /**
+   * Regras e contrato desta execução — texto estático (não depende do projeto
+   * nem do requisito), por isso fica num segundo bloco cacheável do `system`,
+   * logo após a persona do agent.
+   */
+  private buildExecutionRules() {
+    return `Execute a análise do requisito fornecido pelo usuário em PT-BR, seguindo integralmente sua definição de agent.
 
 RESTRIÇÕES DESTA EXECUÇÃO:
 - Escreva TODOS os valores textuais em português do Brasil. Não use títulos, categorias, recomendações ou decisões em inglês; mantenha em inglês somente os enums exigidos pelo contrato JSON.
@@ -793,7 +943,7 @@ RESTRIÇÕES DESTA EXECUÇÃO:
 - Preencha todas as propriedades do contrato abaixo. Use arrays vazios quando não houver itens.
 - Respeite rigorosamente a ordem das propriedades do contrato: requisito, requisitoReescrito, gate, regrasNegocio, perguntasRefinamento, cenariosTeste e riscosAdicionais.
 - Priorize requisito, reescrita e gate. Se a resposta estiver próxima do limite, reduza a quantidade de cenários e finalize um JSON válido; nunca interrompa no meio de um objeto.
-- Seja objetivo nas descrições para que a resposta completa permaneça abaixo do limite do provider.
+- Seja objetivo nas descrições para que a resposta completa permaneça abaixo do limite de saída.
 
 CONTRATO JSON OBRIGATÓRIO:
 {
@@ -829,9 +979,27 @@ CONTRATO JSON OBRIGATÓRIO:
   "perguntasRefinamento": [{ "id": "Q01", "pergunta": "string", "trechoOrigem": "string", "riscoMitigado": "string", "criticidade": "Alta | Média | Baixa" }],
   "cenariosTeste": [{ "id": "TC-B001 ou TC-F001", "titulo": "string", "tipo": "Funcional | Borda | Negativo | Segurança | Concorrência | Visual", "execucao": "AUTOMAÇÃO | MANUAL | AMBOS", "escopo": "Backend | Frontend", "dado": "string", "quando": "string", "entao": "string", "criterioRelacionado": "string" }],
   "riscosAdicionais": ["string"]
-}
+}`;
+  }
 
-CONTEXTO ISOLADO DO PROJETO:
+  /** Conteúdo dinâmico desta execução — contexto do projeto e o requisito em si. Nunca cacheado. */
+  private buildUserPrompt(
+    dto: RunUsAnalyserDto,
+    projeto: {
+      nome: string;
+      codigo: string;
+      status: string;
+      descricao: string | null;
+      objetivo: string | null;
+      areaNegocio: string | null;
+      idiomas: string[];
+      paisesDisponiveis: string[];
+      responsavelPrincipal: string | null;
+      _count: { times: number; pessoas: number; produtos: number };
+    },
+    actorEmail: string,
+  ) {
+    return `CONTEXTO ISOLADO DO PROJETO:
 - Projeto: ${projeto.nome} (${projeto.codigo})
 - Status: ${projeto.status}
 - Área de negócio: ${projeto.areaNegocio ?? 'Não informada'}

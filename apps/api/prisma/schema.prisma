@@ -59,6 +59,8 @@ model Projeto {
   documentosConhecimento DocumentoConhecimento[] @relation("DocumentoProjetoProprietario")
   documentoVinculos      DocumentoVinculo[]      @relation("DocumentoVinculoProjetoContexto")
   agentExecutions        AgentExecution[]
+  endpointBacklogs       EndpointBacklog[]
+  bugs                   Bug[]
 
   @@index([status])
   @@index([areaNegocio])
@@ -87,10 +89,111 @@ model AgentExecution {
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
+  endpointBacklog EndpointBacklog?
+  bugs            Bug[]
+
   @@index([actorUserId, createdAt])
   @@index([projetoId, createdAt])
   @@index([status])
   @@map("agent_executions")
+}
+
+enum EndpointDecisao {
+  Pendente
+  Automatizar
+  Adiar
+  NaoAutomatizar
+  Investigar
+
+  @@map("endpoint_decisao")
+}
+
+model EndpointBacklog {
+  id          String         @id @default(cuid())
+  projetoId   String         @map("projeto_id")
+  projeto     Projeto        @relation(fields: [projetoId], references: [id], onDelete: Cascade)
+  executionId String         @unique @map("execution_id")
+  execution   AgentExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+  sistema     String
+  fontes      String[]       @default([])
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  itens EndpointBacklogItem[]
+
+  @@index([projetoId, createdAt])
+  @@map("endpoint_backlogs")
+}
+
+model EndpointBacklogItem {
+  id                   String          @id @default(cuid())
+  backlogId            String          @map("backlog_id")
+  backlog              EndpointBacklog @relation(fields: [backlogId], references: [id], onDelete: Cascade)
+  codigo               String
+  metodo               String
+  endpoint             String
+  descricao            String          @db.Text
+  autenticacao         String
+  prioridade           String
+  criterioPrioridade   String          @db.Text @map("criterio_prioridade")
+  observadoEm          String[]        @default([]) @map("observado_em")
+  notas                String?         @db.Text
+  decisao              EndpointDecisao @default(Pendente)
+  decisaoJustificativa String?         @db.Text @map("decisao_justificativa")
+  decididoPorUserId    String?         @map("decidido_por_user_id")
+  decididoEm           DateTime?       @map("decidido_em")
+  createdAt            DateTime        @default(now()) @map("created_at")
+  updatedAt            DateTime        @updatedAt @map("updated_at")
+
+  @@unique([backlogId, codigo])
+  @@index([backlogId])
+  @@map("endpoint_backlog_items")
+}
+
+enum BugSeveridade {
+  Critical
+  High
+  Medium
+  Low
+
+  @@map("bug_severidade")
+}
+
+enum BugStatus {
+  Aberto
+  Corrigido
+  Invalidado
+
+  @@map("bug_status")
+}
+
+model Bug {
+  id                    String         @id @default(cuid())
+  projetoId             String         @map("projeto_id")
+  projeto               Projeto        @relation(fields: [projetoId], references: [id], onDelete: Cascade)
+  executionId           String         @map("execution_id")
+  execution             AgentExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+  codigo                String
+  titulo                String
+  tcIdRelacionado       String?        @map("tc_id_relacionado")
+  severidade            BugSeveridade
+  prioridadeSugerida    String?        @map("prioridade_sugerida")
+  ambiente              String?
+  descricao             String         @db.Text
+  passosReproducao      String[]       @default([]) @map("passos_reproducao")
+  resultadoObtido       String         @db.Text @map("resultado_obtido")
+  resultadoEsperado     String         @db.Text @map("resultado_esperado")
+  evidenciaTecnica      Json?          @map("evidencia_tecnica")
+  criterioAceiteViolado String?        @db.Text @map("criterio_aceite_violado")
+  notasAdicionais       String?        @db.Text @map("notas_adicionais")
+  status                BugStatus      @default(Aberto)
+  createdAt             DateTime       @default(now()) @map("created_at")
+  updatedAt             DateTime       @updatedAt @map("updated_at")
+
+  @@unique([projetoId, codigo])
+  @@index([projetoId, createdAt])
+  @@index([status])
+  @@map("bugs")
 }
 
 enum TimeStatus {

@@ -1,31 +1,17 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   listAgentExecutions,
   listTestDesignerExecutions,
   type AgentExecutionHistoryItem,
-  type AgentExecutionStatus,
   type TestDesignerHistoryItem,
 } from '@/entities/agents/agent-execution.api';
-import { AGENTS_CATALOG, type AgentCatalogItem } from './agents.catalog';
+import { listEndpointDiscoveryExecutions, type EndpointDiscoveryHistoryItem } from '@/entities/agents/endpoint-discovery.api';
+import { listBugReportExecutions, type BugReportHistoryItem } from '@/entities/agents/bug-report.api';
+import { AGENTS_CATALOG, LIVE_AGENTS } from './agents.catalog';
+import { useAgentStations, executionState, designerReaction, type AgentStation, type LiveExecution, type StationState } from './useAgentStations';
 import { NexusMark } from '@/shell/NexusMark';
 
-type LiveExecution = {
-  id: string;
-  agentId: string;
-  title: string;
-  status: AgentExecutionStatus;
-  progress: number;
-  message: string;
-  partial: boolean;
-  updatedAt: string;
-  projectId: string;
-};
-
-type StationState = 'working' | 'supporting' | 'collaborating' | 'queued' | 'done' | 'attention' | 'idle' | 'offline';
-type AgentStation = { agent: AgentCatalogItem; state: StationState; execution?: LiveExecution; reaction?: string; displayProgress?: number; collaborationExecutionId?: string };
-
-const CONNECTED_AGENTS = new Set(['agent1-analisador-us', 'agent2-desenhista-testes']);
 const STATE_COPY: Record<StationState, { label: string; activity: string }> = {
   working: { label: 'Trabalhando', activity: 'Processando agora' },
   supporting: { label: 'Apoiando QA', activity: 'Contribuindo com o desenho dos testes' },
@@ -45,25 +31,12 @@ function normalizePlan(item: TestDesignerHistoryItem): LiveExecution {
   return { id: item.id, agentId: 'agent2-desenhista-testes', title: item.titulo || 'Plano de testes', status: item.status, progress: item.progress, message: item.message, partial: item.parcial, updatedAt: item.updatedAt, projectId: item.projeto.id };
 }
 
-function executionState(execution?: LiveExecution): StationState {
-  if (!execution) return 'idle';
-  if (execution.status === 'processing') return 'working';
-  if (execution.status === 'queued') return 'queued';
-  if (execution.status === 'failed' || execution.partial) return 'attention';
-  return 'done';
+function normalizeEndpointDiscovery(item: EndpointDiscoveryHistoryItem): LiveExecution {
+  return { id: item.id, agentId: 'agent4-descobridor-endpoints', title: item.titulo || 'Descoberta de endpoints', status: item.status, progress: item.progress, message: item.message, partial: false, updatedAt: item.updatedAt, projectId: item.projeto.id };
 }
 
-function designerReaction(progress: number, now: number) {
-  const reactions = progress < 20
-    ? ['Me conte o objetivo principal.', 'Vou mapear os primeiros riscos.']
-    : progress < 45
-      ? ['Esse critério é observável?', 'Temos dados para esse cenário?']
-      : progress < 70
-        ? ['Encontrei uma borda importante.', 'Vou confrontar isso com a OS.']
-        : progress < 90
-          ? ['Esses casos cobrem o risco?', 'Estou verificando a rastreabilidade.']
-          : ['Entendimento alinhado.', 'Pronto para revisar a cobertura.'];
-  return reactions[Math.floor(now / 6000) % reactions.length];
+function normalizeBugReport(item: BugReportHistoryItem): LiveExecution {
+  return { id: item.id, agentId: 'agent7-gerador-bug-report', title: item.titulo || 'Bug report', status: item.status, progress: item.progress, message: item.message, partial: false, updatedAt: item.updatedAt, projectId: item.projeto.id };
 }
 
 function meetingMoment(progress: number, now: number) {
@@ -88,17 +61,6 @@ function meetingMoment(progress: number, now: number) {
           ];
   return moments[Math.floor(now / 6000) % moments.length];
 }
-
-const SUPPORT_MESSAGES: Record<number, string> = {
-  1: 'Validando aderência à OS refinada.',
-  3: 'Revisando impacto nos fluxos de tela.',
-  4: 'Conferindo contratos e integrações.',
-  5: 'Preparando a estratégia de execução.',
-  6: 'Mapeando riscos e pontos de falha.',
-  7: 'Organizando evidências e rastreabilidade.',
-  8: 'Preparando critérios para o reteste.',
-  9: 'Auditando cobertura e guardrails.',
-};
 
 function relativeTime(value: string, now: number) {
   const seconds = Math.max(0, Math.round((now - new Date(value).getTime()) / 1000));
@@ -175,9 +137,19 @@ export function LiveAgentOffice({ projectId, projectName }: { projectId: string;
     async function refresh(silent = false) {
       if (!projectId) { if (active) setLoading(false); return; }
       try {
-        const [analyses, plans] = await Promise.all([listAgentExecutions(projectId), listTestDesignerExecutions()]);
+        const [analyses, plans, discoveries, bugReports] = await Promise.all([
+          listAgentExecutions(projectId),
+          listTestDesignerExecutions(),
+          listEndpointDiscoveryExecutions(projectId),
+          listBugReportExecutions(projectId),
+        ]);
         if (!active) return;
-        setExecutions([...analyses.map(normalizeAnalysis), ...plans.filter((item) => item.projeto.id === projectId).map(normalizePlan)].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()));
+        setExecutions([
+          ...analyses.map(normalizeAnalysis),
+          ...plans.filter((item) => item.projeto.id === projectId).map(normalizePlan),
+          ...discoveries.map(normalizeEndpointDiscovery),
+          ...bugReports.map(normalizeBugReport),
+        ].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()));
         setError('');
       } catch {
         if (active) setError(silent ? 'Conexão perdida. Mantendo o último estado enquanto tentamos reconectar.' : 'Não foi possível sincronizar a sala agora. Tentaremos novamente automaticamente.');
@@ -193,46 +165,40 @@ export function LiveAgentOffice({ projectId, projectName }: { projectId: string;
     return () => window.clearInterval(timer);
   }, []);
 
-  const analyzerExecution = executions.find((item) => item.agentId === 'agent1-analisador-us');
-  const designerExecution = executions.find((item) => item.agentId === 'agent2-desenhista-testes');
-  const analyzerIsActive = analyzerExecution?.status === 'processing' || analyzerExecution?.status === 'queued';
-  const refinementMeetingActive = analyzerExecution?.status === 'processing';
-  const designerProductionActive = designerExecution?.status === 'processing';
-  const supportAgentNumbers = [1, 3, 4, 9, 5, 6, 7, 8];
-  const reactingSupportAgent = supportAgentNumbers[Math.floor(now / 5000) % supportAgentNumbers.length];
-  const stations = useMemo<AgentStation[]>(() => AGENTS_CATALOG.map((agent) => {
-    const execution = executions.find((item) => item.agentId === agent.id);
-    if (designerProductionActive && agent.id !== 'agent2-desenhista-testes' && designerExecution) {
-      return { agent, execution, state: 'supporting', reaction: agent.number === reactingSupportAgent ? SUPPORT_MESSAGES[agent.number] : undefined, displayProgress: designerExecution.progress };
-    }
-    if (!CONNECTED_AGENTS.has(agent.id)) return { agent, state: 'offline' };
-    if (agent.id === 'agent2-desenhista-testes' && analyzerIsActive && analyzerExecution && execution?.status !== 'processing' && execution?.status !== 'queued') {
-      return { agent, execution, state: 'collaborating', reaction: designerReaction(analyzerExecution.progress, now), displayProgress: analyzerExecution.progress, collaborationExecutionId: analyzerExecution.id };
-    }
-    return { agent, execution, state: executionState(execution) };
-  }), [analyzerExecution, analyzerIsActive, designerExecution, designerProductionActive, executions, now, reactingSupportAgent]);
-  const collaborationActive = stations.some((item) => item.state === 'collaborating');
-  const activeCount = refinementMeetingActive || designerProductionActive ? stations.length : stations.filter((item) => item.state === 'working' || item.state === 'collaborating' || item.state === 'queued').length;
-  const attentionCount = stations.filter((item) => item.state === 'attention').length;
+  const {
+    stations,
+    analyzerExecution,
+    refinementMeetingActive,
+    designerExecution,
+    designerProductionActive,
+    collaborationActive,
+    activeCount,
+    attentionCount,
+  } = useAgentStations({ executions, now });
 
   function openStation(station: AgentStation) {
-    const execution = station.execution;
     if (station.collaborationExecutionId) {
       navigate(`/agents/analises/${station.collaborationExecutionId}`);
       return;
     }
-    if (station.agent.id === 'agent1-analisador-us') {
-      navigate(execution ? `/agents/analises/${execution.id}` : `/agents/agent1-analisador-us${projectId ? `?projeto=${projectId}` : ''}`);
-    } else if (station.agent.id === 'agent2-desenhista-testes') {
-      navigate('/agents/planos-teste');
+    const routes = station.agent.routes;
+    if (!routes) return;
+    if (station.execution && routes.detail) {
+      navigate(routes.detail(station.execution.id));
+      return;
     }
+    if (routes.start) {
+      navigate(`${routes.start}${projectId ? `?projeto=${projectId}` : ''}`);
+      return;
+    }
+    if (routes.list) navigate(routes.list);
   }
 
   return (
     <section className="live-office-shell" aria-label="Sala de operações dos agents">
       <header className="live-office-header">
         <div className="live-office-title"><span className="live-office-brand-mark"><NexusMark size={36} /></span><div><span className="live-office-eyebrow"><i /> RENAULT NEXO · OPERAÇÃO AO VIVO</span><h1>Os Agents estão no escritório</h1><p>{projectName} · estados sincronizados a cada 4 segundos</p></div></div>
-        <div className="live-office-kpis"><span><small>{refinementMeetingActive ? 'Em reunião' : designerProductionActive ? 'Nos postos' : 'Em atividade'}</small><strong>{activeCount}</strong></span><span><small>Pedem atenção</small><strong>{attentionCount}</strong></span><span><small>Conectados</small><strong>2 / {stations.length}</strong></span></div>
+        <div className="live-office-kpis"><span><small>{refinementMeetingActive ? 'Em reunião' : designerProductionActive ? 'Nos postos' : 'Em atividade'}</small><strong>{activeCount}</strong></span><span><small>Pedem atenção</small><strong>{attentionCount}</strong></span><span><small>Conectados</small><strong>{LIVE_AGENTS.length} / {stations.length}</strong></span></div>
       </header>
       {error && <div className="live-office-error" role="status">{error}</div>}
       <div className="live-office-layout">

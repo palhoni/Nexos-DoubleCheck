@@ -60,7 +60,7 @@ function RiskIndicator({ value }: { value: string }) {
 
 const PROCESS_PHASES = [
   { id: 'context', label: 'Contexto do projeto' },
-  { id: 'copilot', label: 'Conexão com o Copilot' },
+  { id: 'model', label: 'Conexão com o Claude' },
   { id: 'requirement', label: 'Reescrita do requisito' },
   { id: 'gate', label: 'Gate de qualidade' },
   { id: 'rules', label: 'Regras de negócio' },
@@ -86,7 +86,7 @@ function ProcessingModal({ job, onClose }: { job: AgentExecutionJob; onClose: ()
       <section className="agent-processing-modal">
         <header>
           <div className={`agent-processing-mark${isCompleted ? ' is-complete' : isFailed ? ' is-failed' : ''}`}><Icon name={isCompleted ? 'audit' : isFailed ? 'info' : 'spinner'} size={24} /></div>
-          <div><small>AGENT 1 · GITHUB COPILOT</small><h2 id="agent-processing-title">{isCompleted ? 'Análise concluída' : isFailed ? 'Não foi possível concluir' : 'Analisando e reescrevendo a US'}</h2><p>{job.message}</p></div>
+          <div><small>AGENT 1 · CLAUDE</small><h2 id="agent-processing-title">{isCompleted ? 'Análise concluída' : isFailed ? 'Não foi possível concluir' : 'Analisando e reescrevendo a US'}</h2><p>{job.message}</p></div>
           <span className="agent-processing-time">{Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, '0')}</span>
         </header>
 
@@ -104,7 +104,7 @@ function ProcessingModal({ job, onClose }: { job: AgentExecutionJob; onClose: ()
             {job.live.title && <div className="agent-live-title"><small>Requisito</small><strong>{job.live.title}</strong></div>}
             <div className="agent-live-metrics"><div><strong>{job.live.rules}</strong><span>Regras</span></div><div><strong>{job.live.questions}</strong><span>Perguntas</span></div><div><strong>{job.live.scenarios}</strong><span>Cenários</span></div></div>
             {job.live.gateStatus && <div className="agent-live-gate"><span>Gate preliminar</span><strong>{job.live.gateStatus}</strong></div>}
-            <p><i />{job.live.characters.toLocaleString('pt-BR')} caracteres recebidos do Copilot</p>
+            <p><i />{job.live.characters.toLocaleString('pt-BR')} caracteres recebidos do Claude</p>
           </aside>
         </div>
 
@@ -408,7 +408,7 @@ export function AgentUsAnalyserPage() {
           <span className="agent-detail-bot"><Icon name="clipboardCheck" size={25} /></span>
           <span><small>AGENT 1 · REQUISITOS</small><h1>Analisador de US</h1><p>Analisa o requisito, aponta dúvidas e riscos e propõe cenários de teste orientados por qualidade.</p></span>
         </div>
-        <div className="agent-detail-provider"><i />GitHub Copilot autenticado</div>
+        <div className="agent-detail-provider"><i />Claude (Anthropic) conectado</div>
       </header>
 
       <div className="agent-detail-grid">
@@ -431,7 +431,7 @@ export function AgentUsAnalyserPage() {
           </div>
 
           {error && <div className="agent-execution-error" role="alert"><Icon name="info" size={18} /><span>{error}</span></div>}
-          <Button variant="primary" size="lg" block loading={running} disabled={!projectId || requirement.trim().length < 20} onClick={execute}>{running ? 'Analisando com GitHub Copilot...' : 'Iniciar análise do requisito'}</Button>
+          <Button variant="primary" size="lg" block loading={running} disabled={!projectId || requirement.trim().length < 20} onClick={execute}>{running ? 'Analisando com Claude...' : 'Iniciar análise do requisito'}</Button>
           <p className="agent-execution-note"><Icon name="info" size={14} /> O agent recebe apenas o texto acima e os dados do projeto. Ferramentas, comandos e gravação de arquivos ficam bloqueados.</p>
         </section>
 
