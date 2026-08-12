@@ -23,9 +23,11 @@ import { StartEndpointDiscoveryDto } from './dto/start-endpoint-discovery.dto';
 import { UpdateEndpointDecisionDto } from './dto/update-endpoint-decision.dto';
 import { StartBugReportDto } from './dto/start-bug-report.dto';
 import { UpdateBugStatusDto } from './dto/update-bug-status.dto';
+import { StartJourneyMapperDto } from './dto/start-journey-mapper.dto';
 import { TestDesignerService } from './test-designer.service';
 import { EndpointDiscoveryService } from './endpoint-discovery.service';
 import { BugReportService } from './bug-report.service';
+import { JourneyMapperService } from './journey-mapper.service';
 
 @UseGuards(JwtAuthGuard)
 @Controller('agents')
@@ -35,6 +37,7 @@ export class AgentsController {
     private readonly testDesignerService: TestDesignerService,
     private readonly endpointDiscoveryService: EndpointDiscoveryService,
     private readonly bugReportService: BugReportService,
+    private readonly journeyMapperService: JourneyMapperService,
   ) {}
 
   @Post('requisitos/extrair')
@@ -200,5 +203,29 @@ export class AgentsController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.bugReportService.updateStatus(id, dto, user);
+  }
+
+  @Post('mapeador-jornadas/iniciar')
+  startJourneyMapper(
+    @Body() dto: StartJourneyMapperDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.journeyMapperService.start(dto, user);
+  }
+
+  @Get('mapeador-jornadas/execucoes')
+  listJourneyMapperExecutions(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('projetoId') projetoId?: string,
+  ) {
+    return this.journeyMapperService.listExecutions(user.userId, projetoId);
+  }
+
+  @Get('mapeador-jornadas/execucoes/:id')
+  getJourneyMapperExecution(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.journeyMapperService.getExecution(id, user.userId);
   }
 }

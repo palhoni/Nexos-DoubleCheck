@@ -19,6 +19,7 @@ const AGENT_RUNTIME: Record<string, AgentRuntime> = {
   'agent2-desenhista-testes': 'text',
   'agent4-descobridor-endpoints': 'text',
   'agent7-gerador-bug-report': 'text',
+  'agent-mapeador-jornadas': 'text',
 };
 
 /**

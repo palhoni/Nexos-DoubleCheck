@@ -71,3 +71,17 @@ export class RegrasController {
     return this.regrasService.listarVersoes(produtoId, id);
   }
 }
+
+/** Rota irmã, fora do prefixo `produtos/:produtoId/regras` — resume regras no nível do
+ *  projeto (join por todos os produtos), usada pelo SetupStepper para saber se o projeto
+ *  já tem regra cadastrada, sem exigir um produtoId específico. */
+@UseGuards(JwtAuthGuard)
+@Controller('regras')
+export class RegrasResumoController {
+  constructor(private readonly regrasService: RegrasService) {}
+
+  @Get('resumo')
+  resumo(@Query('projetoId') projetoId: string) {
+    return this.regrasService.resumoPorProjeto(projetoId);
+  }
+}

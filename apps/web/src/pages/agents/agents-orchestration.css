@@ -79,6 +79,8 @@
 .agents-stage--amber > header > b { color: #a66f00; background: #fff3d7; }
 .agents-stage--red .agents-stage__icon, .agent-bot-mark--red { color: #d93949; background: #ffeaed; }
 .agents-stage--red > header > b { color: #d93949; background: #ffeaed; }
+.agents-stage--blue .agents-stage__icon, .agent-bot-mark--blue { color: #2465c7; background: #e8f1ff; }
+.agents-stage--blue > header > b { color: #2465c7; background: #e8f1ff; }
 .agents-stage__cards { display: flex; flex-direction: column; gap: 8px; }
 .agents-stage__connector { position: absolute; z-index: 2; top: 120px; right: -9px; width: 18px; height: 18px; display: grid; place-items: center; border-radius: 50%; background: #3b82c4; color: #111; font-size: 13px; font-weight: 800; }
 
@@ -607,6 +609,10 @@
 .agent-live-summary > p { display: flex; align-items: center; gap: 6px; margin: 12px 0 0; color: var(--color-text-tertiary); font-size: 8px; }
 .agent-live-summary > p i { width: 6px; height: 6px; border-radius: 50%; background: #35b958; box-shadow: 0 0 0 3px rgba(53, 185, 88, .15); }
 .agent-processing-error { display: flex; gap: 8px; padding: 10px 13px; margin: 0 23px 16px; border: 1px solid #ffb3b3; border-radius: 7px; background: #fff1f0; color: #9f1b1b; font-size: 10px; line-height: 1.45; }
+.agent-processing-summary { display: grid; gap: 6px; padding: 0 23px 16px; margin: 0; list-style: none; }
+.agent-processing-summary li { display: flex; justify-content: space-between; gap: 10px; padding: 8px 12px; border-radius: 7px; background: var(--color-fill-quaternary); font-size: 11px; color: var(--color-text-secondary); }
+.agent-processing-summary li strong { color: var(--color-text); font-size: 13px; }
+.agent-processing-summary__warning { background: #fff3d7 !important; color: #a66f00 !important; }
 .agent-processing-modal > footer { min-height: 62px; display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 23px; border-top: 1px solid var(--color-border); background: var(--color-fill-quaternary); }
 .agent-processing-modal > footer > span { color: var(--color-text-tertiary); font-size: 9px; }
 @keyframes agentPulse { 0%, 100% { opacity: .4; transform: scale(.8); } 50% { opacity: 1; transform: scale(1); } }

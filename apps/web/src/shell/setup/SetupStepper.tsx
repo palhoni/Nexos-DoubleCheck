@@ -3,6 +3,7 @@ import { Stepper, type StepperStep } from '@/design-system';
 import { timeHooks } from '@/entities/time/time.hooks';
 import { pessoaHooks } from '@/entities/pessoa/pessoa.hooks';
 import { produtoHooks } from '@/entities/produto/produto.hooks';
+import { useRegrasResumo } from '@/entities/regra/regra.hooks';
 import { useDocumentoResumo } from '@/entities/documento/documento.api';
 
 type SetupSection = 'projeto' | 'times' | 'pessoas' | 'produtos' | 'regras' | 'documentos';
@@ -64,6 +65,7 @@ export function SetupStepper() {
   const { data: timesData } = timeHooks.useList({ page: 1, pageSize: 1 }, projetoId, { enabled: !!projetoId });
   const { data: pessoasData } = pessoaHooks.useList({ page: 1, pageSize: 1 }, projetoId, { enabled: !!projetoId });
   const { data: produtosData } = produtoHooks.useList({ page: 1, pageSize: 1 }, projetoId, { enabled: !!projetoId });
+  const { data: regrasResumo } = useRegrasResumo(projetoId);
   const { data: documentosResumo } = useDocumentoResumo(projetoId);
 
   if (!parsed || !projetoId) return null;
@@ -115,7 +117,7 @@ export function SetupStepper() {
       key: 'regras',
       label: 'Regras',
       icon: 'clipboardCheck',
-      state: secao === 'regras' ? 'current' : secao === 'documentos' ? 'done' : 'upcoming',
+      state: secao === 'regras' ? 'current' : secao === 'documentos' || (regrasResumo?.total ?? 0) > 0 ? 'done' : 'upcoming',
       onClick: go('regras'),
     },
     {

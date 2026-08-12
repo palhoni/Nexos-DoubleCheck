@@ -5,5 +5,6 @@ import { FontesService } from './fontes.service';
 @Module({
   controllers: [FontesController],
   providers: [FontesService],
+  exports: [FontesService],
 })
 export class FontesModule {}

@@ -23,3 +23,17 @@ export function useCriarNovaVersaoRegra(produtoId: string | undefined) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['regras', produtoId] }),
   });
 }
+
+export interface RegrasResumo {
+  total: number;
+}
+
+/** Total de regras vigentes do projeto (somando todos os produtos) — usado pelo
+ *  SetupStepper para saber se a etapa "Regras" já tem dado real, sem depender de navegação. */
+export function useRegrasResumo(projetoId: string | undefined) {
+  return useQuery({
+    queryKey: ['regras', 'resumo', projetoId],
+    queryFn: () => httpClient.get<RegrasResumo>('/regras/resumo', { params: { projetoId } }).then((r) => r.data),
+    enabled: !!projetoId,
+  });
+}

@@ -1,4 +1,4 @@
-export type AgentStage = 'requisitos' | 'descoberta' | 'planejamento' | 'qualidade';
+export type AgentStage = 'conhecimento' | 'requisitos' | 'descoberta' | 'planejamento' | 'qualidade';
 
 /**
  * 'live'    — tem execução real conectada ao backend (Live Agent Office mostra estado real).
@@ -31,6 +31,7 @@ export interface AgentCatalogItem {
 }
 
 export const AGENT_STAGES: Array<{ id: AgentStage; label: string; subtitle: string; tone: string }> = [
+  { id: 'conhecimento', label: 'Conhecimento', subtitle: 'Estrutura e narrativa do produto', tone: 'blue' },
   { id: 'requisitos', label: 'Requisitos', subtitle: 'Entendimento e refinamento', tone: 'violet' },
   { id: 'descoberta', label: 'Descoberta', subtitle: 'Exploração funcional e técnica', tone: 'teal' },
   { id: 'planejamento', label: 'Planejamento', subtitle: 'Cobertura e preparação', tone: 'amber' },
@@ -38,6 +39,21 @@ export const AGENT_STAGES: Array<{ id: AgentStage; label: string; subtitle: stri
 ];
 
 export const AGENTS_CATALOG: AgentCatalogItem[] = [
+  {
+    id: 'agent-mapeador-jornadas',
+    number: 10,
+    name: 'Mapeador de Jornadas',
+    shortName: 'Mapeador de Jornadas',
+    description: 'Audita a cobertura de Jornadas de um produto e cria ou estende jornadas para os fluxos ponta-a-ponta ainda não mapeados.',
+    stage: 'conhecimento',
+    definitionPath: '.claude/agents/agent-mapeador-jornadas.md',
+    capabilities: ['Auditoria de cobertura', 'Jornadas novas e estendidas', 'Narrativa ponta-a-ponta'],
+    integration: 'live',
+    routes: {
+      start: '/agents/mapeador-jornadas',
+    },
+    supportMessage: 'Costurando funcionalidades em jornadas.',
+  },
   {
     id: 'agent1-analisador-us',
     number: 1,

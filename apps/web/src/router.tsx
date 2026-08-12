@@ -47,6 +47,7 @@ import { EndpointBacklogDetailPage } from '@/pages/agents/EndpointBacklogDetailP
 import { BugReportPage } from '@/pages/agents/BugReportPage';
 import { BugsIndexPage } from '@/pages/agents/BugsIndexPage';
 import { BugDetailPage } from '@/pages/agents/BugDetailPage';
+import { JourneyMapperPage } from '@/pages/agents/JourneyMapperPage';
 
 export const router = createBrowserRouter([
   {
@@ -79,6 +80,7 @@ export const router = createBrowserRouter([
           { path: '/agents/gerador-bug-report', element: <BugReportPage /> },
           { path: '/agents/bugs', element: <BugsIndexPage /> },
           { path: '/agents/bugs/:bugId', element: <BugDetailPage /> },
+          { path: '/agents/mapeador-jornadas', element: <JourneyMapperPage /> },
           { path: '/minha-area', element: <MinhaAreaPage /> },
           { path: '/projetos', element: <ProjetosListPage /> },
           { path: '/projetos/novo', element: <ProjetoFormPage mode="create" /> },

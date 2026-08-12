@@ -150,6 +150,17 @@ export class RegrasService {
     return this.history.list(ENTITY_TYPE, id, page, pageSize);
   }
 
+  /** Total de regras vigentes de um projeto, somando todos os seus produtos — Regra só
+   *  tem produtoId, então precisa desse join para responder "o projeto já tem regra?". */
+  async resumoPorProjeto(projetoId: string) {
+    if (!projetoId) throw new BadRequestException('projetoId é obrigatório.');
+    const projeto = await this.prisma.projeto.findUnique({ where: { id: projetoId }, select: { id: true } });
+    if (!projeto) throw new NotFoundException(`Projeto ${projetoId} não encontrado`);
+
+    const total = await this.prisma.regra.count({ where: { versaoAtual: true, produto: { projetoId } } });
+    return { total };
+  }
+
   async addListItem(produtoId: string, id: string, field: ListField, valor: string) {
     const regra = await this.findOneOrThrow(produtoId, id);
     const atuais = regra[field];
