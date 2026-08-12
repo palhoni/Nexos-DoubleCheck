@@ -26,9 +26,9 @@ export function ChipList({ values, emptyText = '—' }: ChipListProps) {
             fontWeight: 500,
             padding: '2px 8px',
             borderRadius: tokens.radius.pill,
-            background: '#fff8d9',
-            border: '1px solid #f0ca35',
-            color: '#6d5700',
+            background: '#eff5fa',
+            border: '1px solid #9dc1e2',
+            color: '#26537d',
           }}
         >
           {v}

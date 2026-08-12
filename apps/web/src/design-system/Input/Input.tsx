@@ -25,8 +25,8 @@ export function Input({ state = 'default', error, label, hint, style = {}, wrapS
     border = '1px solid #ff4d4f';
     boxShadow = '0 0 0 2px rgba(255,77,79,.2)';
   } else if (focus) {
-    border = '1px solid #c79f00';
-    boxShadow = '0 0 0 3px rgba(255,204,0,.24)';
+    border = '1px solid #3b82c4';
+    boxShadow = '0 0 0 3px rgba(59,130,196,.24)';
   }
 
   const input = (

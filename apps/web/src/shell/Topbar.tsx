@@ -29,7 +29,7 @@ export function Topbar({ breadcrumb = '' }: { breadcrumb?: string }) {
         <div className="nexus-topbar-context">
           <strong>{breadcrumb || 'Nexo'}</strong>
           {breadcrumb === 'Visão Geral' && <small>Acompanhe o ecossistema, a maturidade da base de conhecimento e os pontos que precisam de atenção.</small>}
-          {breadcrumb === 'Orquestração de Agents' && <small>Prepare agents especializados por projeto, com contexto isolado e governança Renault.</small>}
+          {breadcrumb === 'Orquestração de Agents' && <small>Prepare agents especializados por projeto, com contexto isolado e governança Double Check.</small>}
         </div>
         <button type="button" className="nexus-topbar-search-trigger" onClick={() => setSearchOpen(true)}>
           <SearchIcon />

@@ -1,7 +1,7 @@
 /* =========================================================================
-   Nexo Renault Design System — Core Tokens
+   Nexo Double Check Design System — Core Tokens
    Colors, type, radii, shadows, spacing.
-   Built on Ant Design foundations and aligned to the Renault / Nexo visual identity.
+   Built on Ant Design foundations and aligned to the Double Check / Nexo visual identity.
    ========================================================================= */
 
 /* -----------------------------  FONTS  ----------------------------------- */
@@ -20,36 +20,34 @@
 
 :root {
   /* ===================================================================
-     COLOR — PRIMARY / RENAULT
-     Yellow is the selection/action accent; black provides structural contrast.
-     Legacy --dbc-blue-* aliases are intentionally kept so older components inherit
-     the Renault palette without reintroducing the former blue identity.
+     COLOR — PRIMARY / DOUBLE CHECK
+     Blue is the selection/action accent, anchored on the same tone already
+     shipped as --color-info (#3b82c4) on the login screen and sidebar.
+     Black provides structural contrast. --dbc-blue-* is the real 10-step
+     ramp now (steps 1-10, light to dark) — no longer an alias for yellow.
      =================================================================== */
-  --renault-yellow: #ffcc00;
-  --renault-yellow-hover: #f5c400;
-  --renault-yellow-active: #e4b600;
-  --renault-black: #050505;
-  --renault-ink: #141414;
-  --renault-gray: #6f6f6f;
+  --dbc-black: #050505;
+  --dbc-ink: #141414;
+  --dbc-gray: #6f6f6f;
 
-  --dbc-blue-1:  #fff8d9;
-  --dbc-blue-2:  #fff0ad;
-  --dbc-blue-3:  #ffe276;
-  --dbc-blue-4:  #ffd640;
-  --dbc-blue-5:  #ffcc00;
-  --dbc-blue-6:  #c79f00;
-  --dbc-blue-7:  #9a7a00;
-  --dbc-blue-8:  #755d00;
-  --dbc-blue-9:  #5b4800;
-  --dbc-blue-10: #332900;
+  --dbc-blue-1:  #eff5fa;
+  --dbc-blue-2:  #dce9f4;
+  --dbc-blue-3:  #c0d7ec;
+  --dbc-blue-4:  #9dc1e2;
+  --dbc-blue-5:  #72a5d5;
+  --dbc-blue-6:  #3b82c4;
+  --dbc-blue-7:  #306ba1;
+  --dbc-blue-8:  #26537d;
+  --dbc-blue-9:  #1b3c5a;
+  --dbc-blue-10: #112437;
 
-  --color-primary:         #c79f00;
-  --color-primary-hover:   #9a7a00;
-  --color-primary-active:  #755d00;
-  --color-primary-bg:      #fff8d9;
-  --color-primary-bg-hover:#fff1b8;
-  --color-primary-border:  #f0ca35;
-  --color-primary-text:    #755d00;
+  --color-primary:         #3b82c4;
+  --color-primary-hover:   #306ba1;
+  --color-primary-active:  #26537d;
+  --color-primary-bg:      #eff5fa;
+  --color-primary-bg-hover:#dce9f4;
+  --color-primary-border:  #9dc1e2;
+  --color-primary-text:    #26537d;
 
   /* Secondary brand — the logo's gray-blue stroke */
   --dbc-steel: #737373;
@@ -164,7 +162,7 @@
   --shadow-sm:  0 2px 4px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03);
   --shadow-md:  0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 9px 28px 8px rgba(0, 0, 0, 0.05);
   --shadow-lg:  0 12px 32px 0 rgba(0, 0, 0, 0.12), 0 6px 12px -4px rgba(0, 0, 0, 0.08);
-  --shadow-ring:0 0 0 3px rgba(255, 204, 0, 0.26);   /* focus ring on primary */
+  --shadow-ring:0 0 0 3px rgba(59, 130, 196, 0.26);   /* focus ring on primary */
 
   /* ===================================================================
      SPACING — 4-pt scale

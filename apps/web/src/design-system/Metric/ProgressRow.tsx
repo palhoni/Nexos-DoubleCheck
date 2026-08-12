@@ -16,7 +16,7 @@ export interface ProgressRowProps {
  *  (Maturidade), que hoje são a mesma ideia com largura de label e altura de barra
  *  ligeiramente diferentes. A cor da barra é decidida pelo caller (ex.: Maturidade calcula
  *  verde/âmbar/vermelho por faixa), este componente só desenha. */
-export function ProgressRow({ label, percent, valueLabel, color = '#ffcc00', labelWidth = 150, valueWidth = 38, height = 8 }: ProgressRowProps) {
+export function ProgressRow({ label, percent, valueLabel, color = '#3b82c4', labelWidth = 150, valueWidth = 38, height = 8 }: ProgressRowProps) {
   const pct = Math.max(0, Math.min(100, percent));
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

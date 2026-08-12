@@ -40,25 +40,25 @@ function formatRelative(value: string) {
 
 function Panel({ title, action, children, className = '' }: { title: string; action?: ReactNode; children: ReactNode; className?: string }) {
   return (
-    <section className={`renault-panel ${className}`}>
-      <header className="renault-panel__header">
+    <section className={`dbc-panel ${className}`}>
+      <header className="dbc-panel__header">
         <h2>{title}</h2>
         {action}
       </header>
-      <div className="renault-panel__body">{children}</div>
+      <div className="dbc-panel__body">{children}</div>
     </section>
   );
 }
 
 function PanelLink({ children, onClick }: { children: ReactNode; onClick: () => void }) {
-  return <button type="button" className="renault-panel-link" onClick={onClick}>{children}</button>;
+  return <button type="button" className="dbc-panel-link" onClick={onClick}>{children}</button>;
 }
 
 function MetricCard({ label, value, active, inactive, icon, onClick }: { label: string; value: number; active: number; inactive: number; icon: IconName; onClick: () => void }) {
   return (
-    <button type="button" className="renault-metric" onClick={onClick}>
-      <span className="renault-metric__icon"><Icon name={icon} size={25} width={1.7} /></span>
-      <span className="renault-metric__copy">
+    <button type="button" className="dbc-metric" onClick={onClick}>
+      <span className="dbc-metric__icon"><Icon name={icon} size={25} width={1.7} /></span>
+      <span className="dbc-metric__copy">
         <span>{label}</span>
         <strong>{value}</strong>
         <small><i className="is-active" />Ativos: {active}<b>•</b><i />Inativos: {inactive}</small>
@@ -70,13 +70,13 @@ function MetricCard({ label, value, active, inactive, icon, onClick }: { label: 
 function MaturityCard({ score, delta = 0 }: { score: number; delta?: number }) {
   const bounded = Math.max(0, Math.min(100, score));
   return (
-    <button type="button" className="renault-maturity" onClick={() => window.location.assign('/governanca')}>
+    <button type="button" className="dbc-maturity" onClick={() => window.location.assign('/governanca')}>
       <span>
         <span>Maturidade da base</span>
         <strong>{bounded}%</strong>
         <small>{bounded >= 80 ? 'Boa cobertura' : bounded >= 60 ? 'Cobertura em evolução' : 'Requer atenção'} {delta !== 0 && <em>{delta > 0 ? '+' : ''}{delta} pp</em>}</small>
       </span>
-      <i className="renault-maturity__ring" style={{ background: `conic-gradient(#ffcc00 ${bounded * 3.6}deg, #ececec 0deg)` }}><b /></i>
+      <i className="dbc-maturity__ring" style={{ background: `conic-gradient(#3b82c4 ${bounded * 3.6}deg, #ececec 0deg)` }}><b /></i>
     </button>
   );
 }
@@ -129,10 +129,10 @@ function ecosystemData(products: ProdutoGlobal[], integrations: IntegracaoGlobal
 function EcosystemGraph({ products, integrations }: { products: ProdutoGlobal[]; integrations: IntegracaoGlobal[] }) {
   const navigate = useNavigate();
   const graph = useMemo(() => ecosystemData(products, integrations), [products, integrations]);
-  if (!graph.focus) return <div className="renault-empty">Cadastre produtos para visualizar o ecossistema.</div>;
+  if (!graph.focus) return <div className="dbc-empty">Cadastre produtos para visualizar o ecossistema.</div>;
 
   return (
-    <div className="renault-ecosystem">
+    <div className="dbc-ecosystem">
       <svg viewBox="0 0 760 230" preserveAspectRatio="none" aria-hidden="true">
         <path d="M180 48 H305 Q330 48 330 76 V115" />
         <path d="M180 180 H305 Q330 180 330 150 V115" />
@@ -159,19 +159,19 @@ function Readiness({ values }: { values?: { produtos: number; regras: number; in
     ['Integrações', 'network', values?.integracoes ?? 0],
     ['Documentos', 'folder', values?.documentos ?? 0],
   ];
-  return <div className="renault-readiness">{rows.map(([label, icon, value]) => <div key={label}><span className="readiness-icon"><Icon name={icon} size={18} /></span><strong>{label}</strong><i><b style={{ width: `${value}%` }} /></i><em>{value}%</em></div>)}</div>;
+  return <div className="dbc-readiness">{rows.map(([label, icon, value]) => <div key={label}><span className="readiness-icon"><Icon name={icon} size={18} /></span><strong>{label}</strong><i><b style={{ width: `${value}%` }} /></i><em>{value}%</em></div>)}</div>;
 }
 
 function ActivityList({ items }: { items: AtividadeItem[] }) {
-  return <div className="renault-activity-list">{items.map((item) => <div key={item.id}><span className={`activity-icon activity-icon--${item.entityType.toLowerCase()}`}><Icon name={ENTITY_ICON[item.entityType] ?? 'box'} size={16} /></span><span><strong>{item.label}</strong><small>{item.entityType} • por {item.actorNome ?? 'sistema'}</small></span><time>{formatRelative(item.ts)}</time></div>)}</div>;
+  return <div className="dbc-activity-list">{items.map((item) => <div key={item.id}><span className={`activity-icon activity-icon--${item.entityType.toLowerCase()}`}><Icon name={ENTITY_ICON[item.entityType] ?? 'box'} size={16} /></span><span><strong>{item.label}</strong><small>{item.entityType} • por {item.actorNome ?? 'sistema'}</small></span><time>{formatRelative(item.ts)}</time></div>)}</div>;
 }
 
 function AttentionList({ items, onOpen }: { items: Pendencia[]; onOpen: (item: Pendencia) => void }) {
-  return <div className="renault-attention-list">{items.map((item, index) => <button type="button" key={`${item.produtoId}-${index}`} onClick={() => onOpen(item)}><span className="attention-icon"><Icon name={item.prioridade === 'Alta' ? 'info' : 'clipboardCheck'} size={17} /></span><span><strong>{item.descricao}</strong><small>{item.produtoNome}</small></span><em className={item.prioridade === 'Alta' ? 'is-high' : ''}><i />{item.prioridade}</em></button>)}</div>;
+  return <div className="dbc-attention-list">{items.map((item, index) => <button type="button" key={`${item.produtoId}-${index}`} onClick={() => onOpen(item)}><span className="attention-icon"><Icon name={item.prioridade === 'Alta' ? 'info' : 'clipboardCheck'} size={17} /></span><span><strong>{item.descricao}</strong><small>{item.produtoNome}</small></span><em className={item.prioridade === 'Alta' ? 'is-high' : ''}><i />{item.prioridade}</em></button>)}</div>;
 }
 
 function RecentList({ items, kind, onOpen }: { items: Array<{ id: string; nome: string; status: string; subtitle?: string }>; kind: 'project' | 'product'; onOpen: (id: string) => void }) {
-  return <div className="renault-recent-list">{items.map((item) => <button type="button" key={item.id} onClick={() => onOpen(item.id)}><span>{getInitials(item.nome)}</span><b>{item.nome}<small>{item.subtitle}</small></b><em className={`status-${item.status.toLowerCase()}`}><i />{item.status}</em></button>)}{items.length === 0 && <div className="renault-empty">Nenhum {kind === 'project' ? 'projeto' : 'produto'} cadastrado.</div>}</div>;
+  return <div className="dbc-recent-list">{items.map((item) => <button type="button" key={item.id} onClick={() => onOpen(item.id)}><span>{getInitials(item.nome)}</span><b>{item.nome}<small>{item.subtitle}</small></b><em className={`status-${item.status.toLowerCase()}`}><i />{item.status}</em></button>)}{items.length === 0 && <div className="dbc-empty">Nenhum {kind === 'project' ? 'projeto' : 'produto'} cadastrado.</div>}</div>;
 }
 
 export function HomePage() {
@@ -188,8 +188,8 @@ export function HomePage() {
   const recentProducts = [...products].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 3);
 
   return (
-    <div className="renault-dashboard">
-      <div className="renault-metrics-grid">
+    <div className="dbc-dashboard">
+      <div className="dbc-metrics-grid">
         <MetricCard label="Projetos" value={summary?.projetos.total ?? 0} active={summary?.projetos.ativos ?? 0} inactive={summary?.projetos.inativos ?? 0} icon="folder" onClick={() => navigate('/projetos')} />
         <MetricCard label="Times" value={summary?.times.total ?? 0} active={summary?.times.ativos ?? 0} inactive={summary?.times.inativos ?? 0} icon="users" onClick={() => navigate('/projetos')} />
         <MetricCard label="Pessoas" value={summary?.pessoas.total ?? 0} active={summary?.pessoas.ativos ?? 0} inactive={summary?.pessoas.inativos ?? 0} icon="user" onClick={() => navigate('/projetos')} />
@@ -197,17 +197,17 @@ export function HomePage() {
         <MaturityCard score={governance?.summary.overallScore ?? 0} />
       </div>
 
-      <div className="renault-dashboard-row renault-dashboard-row--primary">
-        <Panel title="Ecossistema do Nexo" className="renault-ecosystem-panel" action={<PanelLink onClick={() => navigate('/integracoes')}>Ver detalhes</PanelLink>}><EcosystemGraph products={products} integrations={integrations} /></Panel>
+      <div className="dbc-dashboard-row dbc-dashboard-row--primary">
+        <Panel title="Ecossistema do Nexo" className="dbc-ecosystem-panel" action={<PanelLink onClick={() => navigate('/integracoes')}>Ver detalhes</PanelLink>}><EcosystemGraph products={products} integrations={integrations} /></Panel>
         <Panel title="Prontidão da base" action={<PanelLink onClick={() => navigate('/visao-geral')}>Ver todos</PanelLink>}><Readiness values={summary?.prontidao} /></Panel>
       </div>
 
-      <div className="renault-dashboard-row">
+      <div className="dbc-dashboard-row">
         <Panel title="Atividade recente" action={<PanelLink onClick={() => navigate('/atividade')}>Ver todas</PanelLink>}><ActivityList items={activities} /></Panel>
         <Panel title="Atenção necessária" action={<PanelLink onClick={() => navigate('/governanca')}>Ver todas</PanelLink>}><AttentionList items={attention?.itens ?? []} onOpen={(item) => navigate(`/projetos/${item.projetoId}/produtos/${item.produtoId}`)} /></Panel>
       </div>
 
-      <div className="renault-dashboard-row renault-dashboard-row--recent">
+      <div className="dbc-dashboard-row dbc-dashboard-row--recent">
         <Panel title="Projetos recentes" action={<PanelLink onClick={() => navigate('/projetos')}>Ver todos</PanelLink>}><RecentList kind="project" items={recentProjects} onOpen={(id) => navigate(`/projetos/${id}`)} /></Panel>
         <Panel title="Produtos recentes" action={<PanelLink onClick={() => navigate('/projetos')}>Ver todos</PanelLink>}><RecentList kind="product" items={recentProducts.map((item) => ({ ...item, subtitle: item.projeto.nome }))} onOpen={(id) => { const product = products.find((item) => item.id === id); if (product) navigate(`/projetos/${product.projetoId}/produtos/${id}`); }} /></Panel>
       </div>

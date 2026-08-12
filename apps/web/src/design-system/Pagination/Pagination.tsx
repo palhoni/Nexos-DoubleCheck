@@ -42,7 +42,7 @@ export function Pagination({ page = 1, total = 1, onChange, style = {} }: Pagina
           borderRadius: 6,
           border: `1px solid ${active ? '#141414' : 'var(--color-border)'}`,
           background: active ? '#141414' : 'transparent',
-          color: active ? '#ffcc00' : disabled ? 'var(--color-text-quaternary)' : 'var(--color-text-secondary)',
+          color: active ? '#3b82c4' : disabled ? 'var(--color-text-quaternary)' : 'var(--color-text-secondary)',
           fontSize: 12,
           cursor: disabled ? 'not-allowed' : 'pointer',
           fontFamily: tokens.font,

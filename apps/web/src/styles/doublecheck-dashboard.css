@@ -1,30 +1,35 @@
-/* Nexo Renault — application shell and post-login overview */
-.renault-app-shell { background: #f4f4f4 !important; }
-.renault-app-shell > main { background: #f4f4f4; }
+/* Nexo Double Check — application shell and post-login overview */
+.dbc-app-shell { background: #f4f4f4 !important; }
+.dbc-app-shell > main { background: #f4f4f4; }
 
-.renault-app-shell .dbc-sidebar {
+.dbc-app-shell .dbc-sidebar {
   width: 235px !important;
   color: #f4f4f4 !important;
   background: #050505 !important;
   border-right-color: #222 !important;
 }
-.renault-app-shell .dbc-sidebar.is-collapsed { width: 72px !important; }
-.renault-app-shell .dbc-sidebar > div:first-child { background: #050505; }
-.renault-app-shell .dbc-sidebar svg { stroke: currentColor; }
-.renault-sidebar-brand { display: flex; flex-direction: column; min-width: 0; color: #fff; line-height: 1; }
-.renault-sidebar-brand strong { font-size: 20px; letter-spacing: -.035em; }
-.renault-sidebar-brand small { margin-top: 5px; color: #8b8b8b; font-size: 6px; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; }
-.renault-app-shell .dbc-sidebar-collapse-btn { color: #ddd !important; background: #151515 !important; border-color: #292929 !important; }
-.renault-app-shell .dbc-sidebar-collapse-btn:hover { color: #ffcc00 !important; border-color: #4a4a4a !important; }
-.renault-app-shell .dbc-sidebar-section-label { color: #858585 !important; padding: 12px 24px 6px; }
-.renault-app-shell .dbc-sidebar .dbc-nav-item { position: relative; color: #d9d9d9 !important; background: transparent !important; border-radius: 7px !important; }
-.renault-app-shell .dbc-sidebar .dbc-nav-item svg { color: currentColor !important; stroke: currentColor !important; }
-.renault-app-shell .dbc-sidebar .dbc-nav-item:hover { color: #fff !important; background: #141414 !important; }
-.renault-app-shell .dbc-sidebar .dbc-nav-item-active { color: #ffcc00 !important; background: #1d1d1d !important; font-weight: 650 !important; }
-.renault-app-shell .dbc-sidebar .dbc-nav-item-active::before { content: ''; position: absolute; left: -12px; top: 0; bottom: 0; width: 3px; border-radius: 0 3px 3px 0; background: #ffcc00; }
-.renault-app-shell .dbc-sidebar-footer { color: #ddd; background: #050505 !important; border-top-color: #222 !important; box-shadow: 0 -8px 18px rgba(0,0,0,.35) !important; }
+.dbc-app-shell .dbc-sidebar.is-collapsed { width: 72px !important; }
+.dbc-app-shell .dbc-sidebar > div:first-child {
+  background:
+    radial-gradient(circle at 55% 46%, rgba(255,255,255,.07), transparent 32%),
+    radial-gradient(circle at 12% 11%, rgba(255,255,255,.045), transparent 18%),
+    linear-gradient(145deg, var(--color-info) 0%, #050505 70%);
+}
+.dbc-app-shell .dbc-sidebar svg { stroke: currentColor; }
+.dbc-sidebar-brand { display: flex; flex-direction: column; min-width: 0; color: #fff; line-height: 1; }
+.dbc-sidebar-brand strong { font-size: 20px; letter-spacing: -.035em; }
+.dbc-sidebar-brand small { margin-top: 5px; color: #8b8b8b; font-size: 6px; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; }
+.dbc-app-shell .dbc-sidebar-collapse-btn { color: #ddd !important; background: #151515 !important; border-color: #292929 !important; }
+.dbc-app-shell .dbc-sidebar-collapse-btn:hover { color: #3b82c4 !important; border-color: #4a4a4a !important; }
+.dbc-app-shell .dbc-sidebar-section-label { color: #858585 !important; padding: 12px 24px 6px; }
+.dbc-app-shell .dbc-sidebar .dbc-nav-item { position: relative; color: #d9d9d9 !important; background: transparent !important; border-radius: 7px !important; }
+.dbc-app-shell .dbc-sidebar .dbc-nav-item svg { color: currentColor !important; stroke: currentColor !important; }
+.dbc-app-shell .dbc-sidebar .dbc-nav-item:hover { color: #fff !important; background: rgba(255,255,255,.08) !important; }
+.dbc-app-shell .dbc-sidebar .dbc-nav-item-active { color: #3b82c4 !important; background: #1d1d1d !important; font-weight: 650 !important; }
+.dbc-app-shell .dbc-sidebar .dbc-nav-item-active::before { content: ''; position: absolute; left: -12px; top: 0; bottom: 0; width: 3px; border-radius: 0 3px 3px 0; background: #3b82c4; }
+.dbc-app-shell .dbc-sidebar-footer { color: #ddd; background: #050505 !important; border-top-color: #222 !important; box-shadow: 0 -8px 18px rgba(0,0,0,.35) !important; }
 
-.renault-app-shell .nexus-topbar {
+.dbc-app-shell .nexus-topbar {
   height: 78px;
   grid-template-columns: minmax(330px, 1fr) minmax(270px, 350px) auto;
   gap: 28px;
@@ -32,20 +37,20 @@
   background: #fff !important;
   border-bottom: 1px solid #dedede !important;
 }
-.renault-app-shell .nexus-topbar-context { display: flex; flex-direction: column; min-width: 0; }
-.renault-app-shell .nexus-topbar-context strong { overflow: hidden; color: #111; font-size: 23px; line-height: 1.15; font-weight: 750; letter-spacing: -.03em; text-overflow: ellipsis; white-space: nowrap; }
-.renault-app-shell .nexus-topbar-context small { margin-top: 5px; overflow: hidden; color: #626262; font-size: 11.5px; text-overflow: ellipsis; white-space: nowrap; }
-.renault-app-shell .nexus-topbar-search-trigger { height: 40px; border-color: #d9d9d9; border-radius: 8px; background: #fff; color: #666; }
-.renault-app-shell .nexus-topbar-search-trigger:hover,
-.renault-app-shell .nexus-topbar-search-trigger:focus-visible { border-color: #111; box-shadow: 0 0 0 3px rgba(255,204,0,.28); }
-.renault-app-shell .nexus-topbar-search-trigger kbd { background: #f2f2f2; color: #555; }
-.renault-app-shell .nexus-topbar-icon-btn { position: relative; color: #222; }
-.renault-app-shell .nexus-topbar-icon-btn::after { content: ''; position: absolute; top: 6px; right: 6px; width: 7px; height: 7px; border: 2px solid #fff; border-radius: 50%; background: #ffcc00; }
-.renault-app-shell .nexus-topbar-avatar { background: #111; color: #ffcc00; }
-.renault-app-shell .nexus-topbar-user-copy strong { color: #111; }
-.renault-app-shell .nexus-topbar-user-copy small { color: #777; }
+.dbc-app-shell .nexus-topbar-context { display: flex; flex-direction: column; min-width: 0; }
+.dbc-app-shell .nexus-topbar-context strong { overflow: hidden; color: var(--color-primary); font-size: 23px; line-height: 1.15; font-weight: 750; letter-spacing: -.03em; text-overflow: ellipsis; white-space: nowrap; }
+.dbc-app-shell .nexus-topbar-context small { margin-top: 5px; overflow: hidden; color: #626262; font-size: 11.5px; text-overflow: ellipsis; white-space: nowrap; }
+.dbc-app-shell .nexus-topbar-search-trigger { height: 40px; border-color: #d9d9d9; border-radius: 8px; background: #fff; color: #666; }
+.dbc-app-shell .nexus-topbar-search-trigger:hover,
+.dbc-app-shell .nexus-topbar-search-trigger:focus-visible { border-color: #111; box-shadow: 0 0 0 3px rgba(59,130,196,.28); }
+.dbc-app-shell .nexus-topbar-search-trigger kbd { background: #f2f2f2; color: #555; }
+.dbc-app-shell .nexus-topbar-icon-btn { position: relative; color: #222; }
+.dbc-app-shell .nexus-topbar-icon-btn::after { content: ''; position: absolute; top: 6px; right: 6px; width: 7px; height: 7px; border: 2px solid #fff; border-radius: 50%; background: #3b82c4; }
+.dbc-app-shell .nexus-topbar-avatar { background: #111; color: #3b82c4; }
+.dbc-app-shell .nexus-topbar-user-copy strong { color: #111; }
+.dbc-app-shell .nexus-topbar-user-copy small { color: #777; }
 
-.renault-dashboard {
+.dbc-dashboard {
   min-height: 100%;
   display: flex;
   flex-direction: column;
@@ -54,47 +59,47 @@
   background: #f4f4f4;
   color: #141414;
 }
-.renault-metrics-grid { display: grid; grid-template-columns: repeat(4, minmax(160px, 1fr)) minmax(220px, 1.25fr); gap: 12px; }
-.renault-metric,
-.renault-maturity,
-.renault-panel { border: 1px solid #dedede; border-radius: 9px; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.035); }
-.renault-metric { min-height: 105px; display: flex; align-items: center; gap: 14px; padding: 18px; color: #111; text-align: left; cursor: pointer; transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease; }
-.renault-metric:hover { transform: translateY(-1px); border-color: #c4c4c4; box-shadow: 0 6px 18px rgba(0,0,0,.07); }
-.renault-metric__icon { width: 43px; height: 43px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 9px; background: #fff7d6; color: #dcae00; }
-.renault-metric__copy { min-width: 0; display: flex; flex-direction: column; }
-.renault-metric__copy > span { font-size: 11.5px; font-weight: 650; }
-.renault-metric__copy > strong { margin: 2px 0 8px; font-size: 28px; line-height: 1; letter-spacing: -.035em; }
-.renault-metric__copy small { display: flex; align-items: center; gap: 5px; color: #595959; font-size: 9.5px; white-space: nowrap; }
-.renault-metric__copy small i { width: 5px; height: 5px; border-radius: 50%; background: #888; }
-.renault-metric__copy small i.is-active { background: #29a63f; }
-.renault-metric__copy small b { color: #aaa; font-weight: 400; }
+.dbc-metrics-grid { display: grid; grid-template-columns: repeat(4, minmax(160px, 1fr)) minmax(220px, 1.25fr); gap: 12px; }
+.dbc-metric,
+.dbc-maturity,
+.dbc-panel { border: 1px solid #dedede; border-radius: 9px; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.035); }
+.dbc-metric { min-height: 105px; display: flex; align-items: center; gap: 14px; padding: 18px; color: #111; text-align: left; cursor: pointer; transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease; }
+.dbc-metric:hover { transform: translateY(-1px); border-color: #c4c4c4; box-shadow: 0 6px 18px rgba(0,0,0,.07); }
+.dbc-metric__icon { width: 43px; height: 43px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 9px; background: #eff5fa; color: #3b82c4; }
+.dbc-metric__copy { min-width: 0; display: flex; flex-direction: column; }
+.dbc-metric__copy > span { font-size: 11.5px; font-weight: 650; }
+.dbc-metric__copy > strong { margin: 2px 0 8px; font-size: 28px; line-height: 1; letter-spacing: -.035em; }
+.dbc-metric__copy small { display: flex; align-items: center; gap: 5px; color: #595959; font-size: 9.5px; white-space: nowrap; }
+.dbc-metric__copy small i { width: 5px; height: 5px; border-radius: 50%; background: #888; }
+.dbc-metric__copy small i.is-active { background: #29a63f; }
+.dbc-metric__copy small b { color: #aaa; font-weight: 400; }
 
-.renault-maturity { min-height: 105px; display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 17px 20px; color: #111; text-align: left; cursor: pointer; }
-.renault-maturity > span { display: flex; flex-direction: column; }
-.renault-maturity > span > span { font-size: 11.5px; font-weight: 650; }
-.renault-maturity > span > strong { margin: 3px 0 8px; font-size: 27px; line-height: 1; letter-spacing: -.03em; }
-.renault-maturity > span > small { color: #555; font-size: 10px; white-space: nowrap; }
-.renault-maturity > span em { margin-left: 8px; padding: 2px 6px; border-radius: 4px; background: #e9f8e7; color: #27852d; font-style: normal; }
-.renault-maturity__ring { width: 66px; height: 66px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 50%; transform: rotate(-90deg); }
-.renault-maturity__ring b { width: 48px; height: 48px; border-radius: 50%; background: #fff; }
+.dbc-maturity { min-height: 105px; display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 17px 20px; color: #111; text-align: left; cursor: pointer; }
+.dbc-maturity > span { display: flex; flex-direction: column; }
+.dbc-maturity > span > span { font-size: 11.5px; font-weight: 650; }
+.dbc-maturity > span > strong { margin: 3px 0 8px; font-size: 27px; line-height: 1; letter-spacing: -.03em; }
+.dbc-maturity > span > small { color: #555; font-size: 10px; white-space: nowrap; }
+.dbc-maturity > span em { margin-left: 8px; padding: 2px 6px; border-radius: 4px; background: #e9f8e7; color: #27852d; font-style: normal; }
+.dbc-maturity__ring { width: 66px; height: 66px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 50%; transform: rotate(-90deg); }
+.dbc-maturity__ring b { width: 48px; height: 48px; border-radius: 50%; background: #fff; }
 
-.renault-dashboard-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.renault-dashboard-row--primary { grid-template-columns: 1.15fr .95fr; }
-.renault-dashboard-row--recent { grid-template-columns: .9fr 1.1fr; }
-.renault-panel { min-width: 0; overflow: hidden; }
-.renault-panel__header { height: 43px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 17px; border-bottom: 1px solid #e5e5e5; }
-.renault-panel__header h2 { margin: 0; color: #171717; font-size: 12.5px; font-weight: 700; }
-.renault-panel-link { padding: 5px 0; border: 0; background: transparent; color: #181818; font: 650 10.5px var(--font-sans); cursor: pointer; }
-.renault-panel-link:hover { color: #9c7b00; }
-.renault-panel__body { padding: 10px 17px; }
-.renault-empty { padding: 25px; color: #777; font-size: 12px; text-align: center; }
+.dbc-dashboard-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.dbc-dashboard-row--primary { grid-template-columns: 1.15fr .95fr; }
+.dbc-dashboard-row--recent { grid-template-columns: .9fr 1.1fr; }
+.dbc-panel { min-width: 0; overflow: hidden; }
+.dbc-panel__header { height: 43px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 17px; border-bottom: 1px solid #e5e5e5; }
+.dbc-panel__header h2 { margin: 0; color: #171717; font-size: 12.5px; font-weight: 700; }
+.dbc-panel-link { padding: 5px 0; border: 0; background: transparent; color: #181818; font: 650 10.5px var(--font-sans); cursor: pointer; }
+.dbc-panel-link:hover { color: #306ba1; }
+.dbc-panel__body { padding: 10px 17px; }
+.dbc-empty { padding: 25px; color: #777; font-size: 12px; text-align: center; }
 
-.renault-ecosystem-panel .renault-panel__body { padding: 0 15px; }
-.renault-ecosystem { position: relative; height: 220px; overflow: hidden; }
-.renault-ecosystem > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
-.renault-ecosystem > svg path { fill: none; stroke: #f5bf00; stroke-width: 1.5; }
+.dbc-ecosystem-panel .dbc-panel__body { padding: 0 15px; }
+.dbc-ecosystem { position: relative; height: 220px; overflow: hidden; }
+.dbc-ecosystem > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.dbc-ecosystem > svg path { fill: none; stroke: #306ba1; stroke-width: 1.5; }
 .ecosystem-node { position: absolute; width: 168px; min-height: 57px; display: grid; grid-template-columns: 34px 1fr; grid-template-rows: auto auto; column-gap: 9px; align-items: center; padding: 9px 11px; border: 1px solid #d9d9d9; border-radius: 7px; background: #fff; color: #151515; text-align: left; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,.035); }
-.ecosystem-node:hover { border-color: #f5bf00; box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+.ecosystem-node:hover { border-color: #306ba1; box-shadow: 0 4px 12px rgba(0,0,0,.08); }
 .ecosystem-node > span { grid-row: 1 / 3; width: 32px; height: 32px; display: grid; place-items: center; border-radius: 7px; background: #edf2ff; color: #174aa5; font-size: 10px; font-weight: 750; }
 .ecosystem-node b { overflow: hidden; font-size: 10.5px; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
 .ecosystem-node small { overflow: hidden; color: #666; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
@@ -106,88 +111,88 @@
 .ecosystem-node--4 { right: 2%; bottom: 25px; }
 .ecosystem-legend { position: absolute; bottom: 2px; left: 50%; display: flex; gap: 25px; color: #666; font-size: 8px; transform: translateX(-50%); white-space: nowrap; }
 .ecosystem-legend span { display: flex; align-items: center; gap: 7px; }
-.ecosystem-legend i { width: 28px; height: 1px; background: #f5bf00; }
-.ecosystem-legend span:last-child i { background: repeating-linear-gradient(90deg,#f5bf00 0 5px,transparent 5px 9px); }
+.ecosystem-legend i { width: 28px; height: 1px; background: #306ba1; }
+.ecosystem-legend span:last-child i { background: repeating-linear-gradient(90deg,#306ba1 0 5px,transparent 5px 9px); }
 
-.renault-readiness { display: flex; flex-direction: column; }
-.renault-readiness > div { min-height: 50px; display: grid; grid-template-columns: 35px 100px 1fr 38px; align-items: center; gap: 10px; }
+.dbc-readiness { display: flex; flex-direction: column; }
+.dbc-readiness > div { min-height: 50px; display: grid; grid-template-columns: 35px 100px 1fr 38px; align-items: center; gap: 10px; }
 .readiness-icon { width: 31px; height: 31px; display: grid; place-items: center; border: 1px solid #ddd; border-radius: 7px; color: #262626; }
-.renault-readiness strong { font-size: 11px; }
-.renault-readiness > div > i { height: 5px; overflow: hidden; border-radius: 99px; background: #e3e3e3; }
-.renault-readiness > div > i b { display: block; height: 100%; border-radius: inherit; background: #ffc400; }
-.renault-readiness em { justify-self: end; font-size: 13px; font-style: normal; font-weight: 700; }
+.dbc-readiness strong { font-size: 11px; }
+.dbc-readiness > div > i { height: 5px; overflow: hidden; border-radius: 99px; background: #e3e3e3; }
+.dbc-readiness > div > i b { display: block; height: 100%; border-radius: inherit; background: #3b82c4; }
+.dbc-readiness em { justify-self: end; font-size: 13px; font-style: normal; font-weight: 700; }
 
-.renault-activity-list > div { min-height: 36px; display: grid; grid-template-columns: 30px 1fr auto; align-items: center; gap: 9px; }
+.dbc-activity-list > div { min-height: 36px; display: grid; grid-template-columns: 30px 1fr auto; align-items: center; gap: 9px; }
 .activity-icon, .attention-icon { width: 27px; height: 27px; display: grid; place-items: center; border-radius: 6px; color: #278d35; background: #eaf8e8; }
 .activity-icon--regra { color: #a77900; background: #fff5d5; }
 .activity-icon--integracao { color: #6f42c1; background: #f2eaff; }
 .activity-icon--documento { color: #1766c0; background: #e8f1ff; }
-.renault-activity-list > div > span:nth-child(2) { min-width: 0; display: flex; flex-direction: column; }
-.renault-activity-list strong { overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
-.renault-activity-list small { margin-top: 2px; color: #666; font-size: 8.5px; }
-.renault-activity-list time { color: #555; font-size: 9px; white-space: nowrap; }
+.dbc-activity-list > div > span:nth-child(2) { min-width: 0; display: flex; flex-direction: column; }
+.dbc-activity-list strong { overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.dbc-activity-list small { margin-top: 2px; color: #666; font-size: 8.5px; }
+.dbc-activity-list time { color: #555; font-size: 9px; white-space: nowrap; }
 
-.renault-attention-list { display: flex; flex-direction: column; }
-.renault-attention-list button { min-height: 45px; display: grid; grid-template-columns: 30px 1fr 68px; align-items: center; gap: 9px; padding: 4px 0; border: 0; border-bottom: 1px solid #eee; background: transparent; color: #111; text-align: left; cursor: pointer; }
-.renault-attention-list button:last-child { border-bottom: 0; }
-.renault-attention-list button:hover strong { text-decoration: underline; }
+.dbc-attention-list { display: flex; flex-direction: column; }
+.dbc-attention-list button { min-height: 45px; display: grid; grid-template-columns: 30px 1fr 68px; align-items: center; gap: 9px; padding: 4px 0; border: 0; border-bottom: 1px solid #eee; background: transparent; color: #111; text-align: left; cursor: pointer; }
+.dbc-attention-list button:last-child { border-bottom: 0; }
+.dbc-attention-list button:hover strong { text-decoration: underline; }
 .attention-icon { color: #222; background: #fff; border: 1px solid #ddd; }
-.renault-attention-list button > span:nth-child(2) { min-width: 0; display: flex; flex-direction: column; }
-.renault-attention-list strong { overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
-.renault-attention-list small { margin-top: 2px; color: #686868; font-size: 8.5px; }
-.renault-attention-list em { justify-self: end; min-width: 62px; padding: 3px 8px; border: 1px solid #f0c64f; border-radius: 99px; background: #fff7d9; color: #946d00; font-size: 8.5px; font-style: normal; text-align: center; }
-.renault-attention-list em i { display: inline-block; width: 5px; height: 5px; margin-right: 5px; border-radius: 50%; background: currentColor; }
-.renault-attention-list em.is-high { border-color: #ff9a9a; background: #fff0f0; color: #c22727; }
+.dbc-attention-list button > span:nth-child(2) { min-width: 0; display: flex; flex-direction: column; }
+.dbc-attention-list strong { overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.dbc-attention-list small { margin-top: 2px; color: #686868; font-size: 8.5px; }
+.dbc-attention-list em { justify-self: end; min-width: 62px; padding: 3px 8px; border: 1px solid #9dc1e2; border-radius: 99px; background: #eff5fa; color: #306ba1; font-size: 8.5px; font-style: normal; text-align: center; }
+.dbc-attention-list em i { display: inline-block; width: 5px; height: 5px; margin-right: 5px; border-radius: 50%; background: currentColor; }
+.dbc-attention-list em.is-high { border-color: #ff9a9a; background: #fff0f0; color: #c22727; }
 
-.renault-recent-list { display: flex; flex-direction: column; }
-.renault-recent-list button { min-height: 36px; display: grid; grid-template-columns: 30px 1fr auto; align-items: center; gap: 9px; padding: 3px 0; border: 0; border-bottom: 1px solid #e8e8e8; background: transparent; color: #111; text-align: left; cursor: pointer; }
-.renault-recent-list button:last-of-type { border-bottom: 0; }
-.renault-recent-list button > span { width: 27px; height: 27px; display: grid; place-items: center; border-radius: 50%; background: #edf2ff; color: #174aa5; font-size: 9px; font-weight: 750; }
-.renault-recent-list button > b { min-width: 0; overflow: hidden; font-size: 10px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
-.renault-recent-list button > b small { display: block; margin-top: 2px; overflow: hidden; color: #777; font-size: 8.5px; font-weight: 400; text-overflow: ellipsis; white-space: nowrap; }
-.renault-recent-list em { min-width: 57px; padding: 3px 8px; border-radius: 99px; background: #ebf8e9; color: #21802a; font-size: 8px; font-style: normal; text-align: center; }
-.renault-recent-list em i { display: inline-block; width: 5px; height: 5px; margin-right: 4px; border-radius: 50%; background: currentColor; }
-.renault-recent-list em.status-inativo { background: #efefef; color: #666; }
-.renault-recent-list em.status-planejamento { background: #fff5d5; color: #a77900; }
+.dbc-recent-list { display: flex; flex-direction: column; }
+.dbc-recent-list button { min-height: 36px; display: grid; grid-template-columns: 30px 1fr auto; align-items: center; gap: 9px; padding: 3px 0; border: 0; border-bottom: 1px solid #e8e8e8; background: transparent; color: #111; text-align: left; cursor: pointer; }
+.dbc-recent-list button:last-of-type { border-bottom: 0; }
+.dbc-recent-list button > span { width: 27px; height: 27px; display: grid; place-items: center; border-radius: 50%; background: #edf2ff; color: #174aa5; font-size: 9px; font-weight: 750; }
+.dbc-recent-list button > b { min-width: 0; overflow: hidden; font-size: 10px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.dbc-recent-list button > b small { display: block; margin-top: 2px; overflow: hidden; color: #777; font-size: 8.5px; font-weight: 400; text-overflow: ellipsis; white-space: nowrap; }
+.dbc-recent-list em { min-width: 57px; padding: 3px 8px; border-radius: 99px; background: #ebf8e9; color: #21802a; font-size: 8px; font-style: normal; text-align: center; }
+.dbc-recent-list em i { display: inline-block; width: 5px; height: 5px; margin-right: 4px; border-radius: 50%; background: currentColor; }
+.dbc-recent-list em.status-inativo { background: #efefef; color: #666; }
+.dbc-recent-list em.status-planejamento { background: #fff5d5; color: #a77900; }
 
-html.dark .renault-dashboard,
-html.dark .renault-app-shell,
-html.dark .renault-app-shell > main { background: #f4f4f4 !important; }
-html.dark .renault-dashboard { color: #141414 !important; }
-html.dark .renault-panel,
-html.dark .renault-metric,
-html.dark .renault-maturity,
+html.dark .dbc-dashboard,
+html.dark .dbc-app-shell,
+html.dark .dbc-app-shell > main { background: #f4f4f4 !important; }
+html.dark .dbc-dashboard { color: #141414 !important; }
+html.dark .dbc-panel,
+html.dark .dbc-metric,
+html.dark .dbc-maturity,
 html.dark .ecosystem-node { background: #fff !important; color: #111 !important; border-color: #dedede !important; }
 
 @media (max-width: 1280px) {
-  .renault-metrics-grid { grid-template-columns: repeat(4, 1fr); }
-  .renault-maturity { grid-column: span 2; }
-  .renault-dashboard-row--primary { grid-template-columns: 1fr; }
+  .dbc-metrics-grid { grid-template-columns: repeat(4, 1fr); }
+  .dbc-maturity { grid-column: span 2; }
+  .dbc-dashboard-row--primary { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 980px) {
-  .renault-app-shell .nexus-topbar { grid-template-columns: minmax(230px, 1fr) minmax(220px, 310px) auto; }
-  .renault-app-shell .nexus-topbar-context small { display: none; }
-  .renault-metrics-grid { grid-template-columns: repeat(2, 1fr); }
-  .renault-dashboard-row, .renault-dashboard-row--recent { grid-template-columns: 1fr; }
+  .dbc-app-shell .nexus-topbar { grid-template-columns: minmax(230px, 1fr) minmax(220px, 310px) auto; }
+  .dbc-app-shell .nexus-topbar-context small { display: none; }
+  .dbc-metrics-grid { grid-template-columns: repeat(2, 1fr); }
+  .dbc-dashboard-row, .dbc-dashboard-row--recent { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 700px) {
-  .renault-app-shell .dbc-sidebar { width: 72px !important; }
-  .renault-app-shell .nexus-topbar { height: 62px; grid-template-columns: minmax(0, 1fr) auto; padding: 0 12px; }
-  .renault-app-shell .nexus-topbar-context { display: none; }
-  .renault-dashboard { padding: 12px; }
-  .renault-metrics-grid { grid-template-columns: 1fr; }
-  .renault-maturity { grid-column: auto; }
-  .renault-ecosystem { height: 340px; }
-  .renault-ecosystem > svg { display: none; }
+  .dbc-app-shell .dbc-sidebar { width: 72px !important; }
+  .dbc-app-shell .nexus-topbar { height: 62px; grid-template-columns: minmax(0, 1fr) auto; padding: 0 12px; }
+  .dbc-app-shell .nexus-topbar-context { display: none; }
+  .dbc-dashboard { padding: 12px; }
+  .dbc-metrics-grid { grid-template-columns: 1fr; }
+  .dbc-maturity { grid-column: auto; }
+  .dbc-ecosystem { height: 340px; }
+  .dbc-ecosystem > svg { display: none; }
   .ecosystem-node, .ecosystem-node--focus, .ecosystem-node--1, .ecosystem-node--2, .ecosystem-node--3, .ecosystem-node--4 { position: relative; inset: auto; width: 100%; min-height: 52px; margin-top: 8px; transform: none; }
   .ecosystem-legend { display: none; }
-  .renault-readiness > div { grid-template-columns: 35px 85px 1fr 34px; }
+  .dbc-readiness > div { grid-template-columns: 35px 85px 1fr 34px; }
 }
 
 @media (max-width: 480px) {
-  .renault-app-shell .dbc-sidebar { display: none !important; }
-  .renault-panel__body { padding-inline: 12px; }
-  .renault-metric { min-height: 92px; }
+  .dbc-app-shell .dbc-sidebar { display: none !important; }
+  .dbc-panel__body { padding-inline: 12px; }
+  .dbc-metric { min-height: 92px; }
 }

@@ -9,7 +9,7 @@ export const STATUS_PRESETS: Record<StatusPreset, { color: string; bg: string; b
   inativo: { color: 'rgba(0,0,0,.45)', bg: 'rgba(0,0,0,.05)', border: 'rgba(0,0,0,.12)' },
   neutral: { color: 'rgba(0,0,0,.45)', bg: 'rgba(0,0,0,.05)', border: 'rgba(0,0,0,.12)' },
   analise: { color: '#531dab', bg: 'rgba(114,46,209,.1)', border: 'rgba(114,46,209,.25)' },
-  info: { color: '#6d5700', bg: '#fff8d9', border: '#f0ca35' },
+  info: { color: '#26537d', bg: '#eff5fa', border: '#9dc1e2' },
 };
 
 export interface BadgeProps {
@@ -25,9 +25,9 @@ export interface BadgeProps {
 
 export function Badge({ kind = 'status', preset, color, bg, border, dot, children, style = {} }: BadgeProps) {
   const p = preset ? STATUS_PRESETS[preset] : null;
-  const c = color || p?.color || '#6d5700';
-  const b = bg || p?.bg || '#fff8d9';
-  const bd = border || p?.border || '#f0ca35';
+  const c = color || p?.color || '#26537d';
+  const b = bg || p?.bg || '#eff5fa';
+  const bd = border || p?.border || '#9dc1e2';
 
   if (kind === 'solid') {
     return (

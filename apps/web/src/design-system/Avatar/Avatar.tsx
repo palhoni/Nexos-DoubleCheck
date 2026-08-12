@@ -11,7 +11,7 @@ export function Avatar({ size = 36, initials }: AvatarProps) {
         width: size,
         height: size,
         borderRadius: '50%',
-        background: 'linear-gradient(145deg, #fff8d9, #f2e4a4)',
+        background: 'linear-gradient(145deg, #eff5fa, #dce9f4)',
         flexShrink: 0,
         overflow: 'hidden',
         position: 'relative',
@@ -22,9 +22,9 @@ export function Avatar({ size = 36, initials }: AvatarProps) {
       }}
     >
       {initials ? (
-        <span style={{ fontSize: size * 0.36, fontWeight: 700, color: '#4a3b00' }}>{initials}</span>
+        <span style={{ fontSize: size * 0.36, fontWeight: 700, color: '#112437' }}>{initials}</span>
       ) : (
-        <svg width={size * 0.5} height={size * 0.5} viewBox="0 0 24 24" fill="none" stroke="#4a3b00" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+        <svg width={size * 0.5} height={size * 0.5} viewBox="0 0 24 24" fill="none" stroke="#112437" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="8" r="4" />
           <path d="M4 21c0-4 4-6 8-6s8 2 8 6" />
         </svg>

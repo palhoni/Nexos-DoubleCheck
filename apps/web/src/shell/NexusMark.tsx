@@ -1,20 +1,21 @@
 export interface NexusMarkProps {
   size?: number;
+  className?: string;
 }
 
-export function NexusMark({ size = 32 }: NexusMarkProps) {
+export function NexusMark({ size = 32, className = '' }: NexusMarkProps) {
   return (
     <svg
+      className={className}
       width={size}
       height={size}
-      viewBox="0 0 44 56"
+      viewBox="0 0 48 48"
       fill="none"
       aria-hidden="true"
       style={{ color: 'currentColor', flexShrink: 0 }}
     >
-      <path d="M22 2 41 28 22 54 3 28 22 2Z" stroke="currentColor" strokeWidth="4" />
-      <path d="m22 8 10 20-10 20-10-20L22 8Z" stroke="currentColor" strokeWidth="3" />
-      <path d="m3 28 9 0M32 28h9" stroke="currentColor" strokeWidth="3" />
+      <path d="M5 27 14 36 32 14" stroke="currentColor" strokeOpacity=".45" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M11 24 20 33 43 9" stroke="currentColor" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

@@ -23,7 +23,7 @@ export function VisaoGeralPage() {
   ];
 
   return (
-    <div className="main-pad renault-overview-page">
+    <div className="main-pad dbc-overview-page">
       <SetupPageHeader
         breadcrumb={['Setup', 'Visão Geral']}
         title="Visão Geral do Setup"
@@ -49,9 +49,9 @@ export function VisaoGeralPage() {
       <FormGrid columns={2} gap={14}>
         <FormGridItem>
           <SectionCard title="Projetos por status" subtitle="Distribuição atual do portfólio" icon="chart">
-            <div className="renault-overview-bars">
+            <div className="dbc-overview-bars">
               {porStatus.map((item) => (
-                <ProgressRow key={item.label} label={item.label} percent={total ? (item.value / total) * 100 : 0} valueLabel={item.value} color="#ffcc00" />
+                <ProgressRow key={item.label} label={item.label} percent={total ? (item.value / total) * 100 : 0} valueLabel={item.value} color="#3b82c4" />
               ))}
             </div>
           </SectionCard>
@@ -59,11 +59,11 @@ export function VisaoGeralPage() {
 
         <FormGridItem>
           <SectionCard title="Projetos por área de negócio" subtitle="Onde o conhecimento está concentrado" icon="folder">
-            <div className="renault-overview-bars">
+            <div className="dbc-overview-bars">
               {porArea.length === 0 ? (
                 <span className="dbc-text-2" style={{ fontSize: 13 }}>Nenhum projeto cadastrado ainda.</span>
               ) : (
-                porArea.map((item) => <ProgressRow key={item.label} label={item.label} percent={total ? (item.value / total) * 100 : 0} valueLabel={item.value} color="#ffcc00" />)
+                porArea.map((item) => <ProgressRow key={item.label} label={item.label} percent={total ? (item.value / total) * 100 : 0} valueLabel={item.value} color="#3b82c4" />)
               )}
             </div>
           </SectionCard>
@@ -71,8 +71,8 @@ export function VisaoGeralPage() {
       </FormGrid>
 
       <SectionCard title="Prontidão da base" subtitle="Cobertura mínima necessária para uma base confiável" icon="clipboardCheck">
-        <div className="renault-overview-readiness">
-          {readiness.map((item) => <ProgressRow key={item.label} label={item.label} percent={item.value} valueLabel={`${item.value}%`} color="#ffcc00" labelWidth={120} />)}
+        <div className="dbc-overview-readiness">
+          {readiness.map((item) => <ProgressRow key={item.label} label={item.label} percent={item.value} valueLabel={`${item.value}%`} color="#3b82c4" labelWidth={120} />)}
         </div>
       </SectionCard>
     </div>

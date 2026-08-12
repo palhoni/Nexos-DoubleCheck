@@ -149,7 +149,7 @@ function EntityCheckboxField({ checked, onChange, label }: { checked: boolean; o
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        style={{ width: 17, height: 17, accentColor: '#ffcc00', cursor: 'pointer' }}
+        style={{ width: 17, height: 17, accentColor: '#3b82c4', cursor: 'pointer' }}
       />
       <span className="dbc-text" style={{ fontSize: 13.5, color: dark ? 'var(--color-text)' : undefined }}>
         {label}

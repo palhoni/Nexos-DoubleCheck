@@ -122,7 +122,7 @@ function HistoryTab({ id, hooks, scopeId }: { id: string; hooks: EntityHooks<{ i
       {entries.map((h, i) => (
         <div key={i} style={{ display: 'flex', gap: 14, paddingBottom: i < entries.length - 1 ? 16 : 0 }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
-            <span style={{ width: 9, height: 9, borderRadius: '50%', background: '#ffcc00', flexShrink: 0 }} />
+            <span style={{ width: 9, height: 9, borderRadius: '50%', background: '#3b82c4', flexShrink: 0 }} />
             {i < entries.length - 1 && <span style={{ width: 1, flex: 1, background: dark ? 'var(--color-border)' : '#e5e7eb', marginTop: 4 }} />}
           </div>
           <div style={{ paddingBottom: 4 }}>

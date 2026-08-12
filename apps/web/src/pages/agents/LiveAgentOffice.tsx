@@ -101,7 +101,7 @@ function RefinementMeeting({ execution, now }: { execution: LiveExecution; now: 
     <section className="live-meeting" role="status" aria-label={`Reunião de refinamento de ${execution.title}`}>
       <header className="live-meeting__header">
         <span className="live-meeting__mark"><NexusMark size={24} /></span>
-        <span><small>SALA DE REFINAMENTO · RENAULT NEXO</small><strong>{execution.title}</strong></span>
+        <span><small>SALA DE REFINAMENTO · DOUBLE CHECK NEXO</small><strong>{execution.title}</strong></span>
         <em><i /> REUNIÃO EM ANDAMENTO</em>
       </header>
       <div className="live-meeting__stage">
@@ -197,14 +197,14 @@ export function LiveAgentOffice({ projectId, projectName }: { projectId: string;
   return (
     <section className="live-office-shell" aria-label="Sala de operações dos agents">
       <header className="live-office-header">
-        <div className="live-office-title"><span className="live-office-brand-mark"><NexusMark size={36} /></span><div><span className="live-office-eyebrow"><i /> RENAULT NEXO · OPERAÇÃO AO VIVO</span><h1>Os Agents estão no escritório</h1><p>{projectName} · estados sincronizados a cada 4 segundos</p></div></div>
+        <div className="live-office-title"><span className="live-office-brand-mark"><NexusMark size={36} /></span><div><span className="live-office-eyebrow"><i /> DOUBLE CHECK NEXO · OPERAÇÃO AO VIVO</span><h1>Os Agents estão no escritório</h1><p>{projectName} · estados sincronizados a cada 4 segundos</p></div></div>
         <div className="live-office-kpis"><span><small>{refinementMeetingActive ? 'Em reunião' : designerProductionActive ? 'Nos postos' : 'Em atividade'}</small><strong>{activeCount}</strong></span><span><small>Pedem atenção</small><strong>{attentionCount}</strong></span><span><small>Conectados</small><strong>{LIVE_AGENTS.length} / {stations.length}</strong></span></div>
       </header>
       {error && <div className="live-office-error" role="status">{error}</div>}
       <div className="live-office-layout">
         <div className={`live-office-map${loading ? ' is-loading' : ''}${refinementMeetingActive ? ' is-meeting' : ''}`}>
           <div className="live-office-room live-office-room--focus"><span>ANÁLISE &amp; PLANEJAMENTO</span></div><div className="live-office-room live-office-room--lab"><span>LABORATÓRIO DE QA</span></div>
-          <div className="live-office-window"><i /><i /><i /></div><div className="live-office-board"><span><NexusMark size={20} /></span><strong>RENAULT<br />QUALITY LAB</strong><i /><i /><i /></div><div className="live-office-coffee"><i /><strong>CAFÉ · NEXO</strong></div>
+          <div className="live-office-window"><i /><i /><i /></div><div className="live-office-board"><span><NexusMark size={20} /></span><strong>DOUBLE CHECK<br />QUALITY LAB</strong><i /><i /><i /></div><div className="live-office-coffee"><i /><strong>CAFÉ · NEXO</strong></div>
           <div className="live-office-plant live-office-plant--one"><i /><i /><i /></div><div className="live-office-plant live-office-plant--two"><i /><i /><i /></div><div className="live-office-rug" aria-hidden="true" />
           {collaborationActive && <div className="live-office-collaboration" aria-label="Agent 1 e Agent 2 alinhando o requisito"><i /><span>ALINHAMENTO DO REQUISITO</span><i /></div>}
           {stations.map((station) => <Desk key={station.agent.id} station={station} onOpen={() => openStation(station)} />)}

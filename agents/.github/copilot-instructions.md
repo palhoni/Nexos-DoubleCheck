@@ -1,6 +1,6 @@
 # Copilot instructions — con-api-automation
 
-Automacao de testes de API para o sistema de Consignacao (Renault), usando **Playwright Test** + **TypeScript**.
+Automacao de testes de API para o sistema de Consignacao (Double Check), usando **Playwright Test** + **TypeScript**.
 
 > Este arquivo e a diretiva central de agentes no ecossistema GitHub Copilot
 > para este projeto. Se uma convencao mudar aqui, replique nos arquivos de

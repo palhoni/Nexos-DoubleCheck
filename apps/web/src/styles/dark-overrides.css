@@ -45,14 +45,14 @@ html.dark .dbc-sidebar-collapse-btn {
   color: var(--color-text-secondary) !important;
 }
 html.dark .dbc-sidebar-collapse-btn:hover {
-  background: rgba(255, 204, 0, 0.12) !important;
-  border-color: rgba(255, 204, 0, 0.42) !important;
-  color: #ffcc00 !important;
+  background: rgba(59, 130, 196, 0.12) !important;
+  border-color: rgba(59, 130, 196, 0.42) !important;
+  color: #3b82c4 !important;
 }
 html.dark .dbc-sidebar-section-label { color: var(--color-text-tertiary) !important; }
 html.dark .dbc-nav-item { color: var(--color-text-secondary) !important; }
 html.dark .dbc-nav-item:hover { background: rgba(255, 255, 255, 0.05) !important; color: var(--color-text) !important; }
-html.dark .dbc-nav-item-active { background: rgba(255, 204, 0, 0.12) !important; color: #ffcc00 !important; }
+html.dark .dbc-nav-item-active { background: rgba(59, 130, 196, 0.12) !important; color: #3b82c4 !important; }
 html.dark .dbc-sidebar-footer { border-top-color: var(--color-border) !important; }
 html.dark .dbc-logout-btn { color: #ff7875 !important; }
 html.dark .dbc-logout-btn:hover { background: rgba(255, 77, 79, 0.1) !important; }

@@ -5,24 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import { Alert } from '@/design-system';
 import { useAuthStore } from './auth.store';
 import { login } from './auth.api';
+import { NexusMark } from '@/shell/NexusMark';
 import './login.css';
-
-function RenaultDiamond({ size = 42, className = '' }: { size?: number; className?: string }) {
-  return (
-    <svg
-      className={className}
-      width={size}
-      height={size}
-      viewBox="0 0 44 56"
-      fill="none"
-      aria-hidden="true"
-    >
-      <path d="M22 2 41 28 22 54 3 28 22 2Z" stroke="currentColor" strokeWidth="4" />
-      <path d="m22 8 10 20-10 20-10-20L22 8Z" stroke="currentColor" strokeWidth="3" />
-      <path d="m3 28 9 0M32 28h9" stroke="currentColor" strokeWidth="3" />
-    </svg>
-  );
-}
 
 function EyeIcon({ crossed = false }: { crossed?: boolean }) {
   return (
@@ -76,7 +60,7 @@ function ConceptGraph() {
         <ConceptIcon><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10ZM9 12l2 2 4-4" /></ConceptIcon>
         <span>Decisões</span>
       </div>
-      <RenaultDiamond size={66} className="nexo-graph-mark" />
+      <NexusMark size={66} className="nexo-graph-mark" />
     </div>
   );
 }
@@ -85,33 +69,23 @@ function HeroPanel() {
   return (
     <section className="nexo-login-hero">
       <div className="nexo-brand">
-        <RenaultDiamond size={48} />
+        <NexusMark size={48} />
         <span>Nexo</span>
       </div>
 
       <div className="nexo-hero-copy">
         <h1>Conectando necessidades,<br />conhecimento e <em>decisões</em></h1>
-        <p>A plataforma de inovação interna da Renault que integra inteligência de produtos, impacto e agentes de QA para acelerar soluções com confiança.</p>
+        <p>A plataforma de inovação interna da Double Check que integra inteligência de produtos, impacto e agentes de QA para acelerar soluções com confiança.</p>
       </div>
 
       <ConceptGraph />
 
-      <div className="nexo-renault-signature" aria-label="Renault, we drive innovation for people">
-        <strong>RENAULT</strong>
+      <div className="nexo-doublecheck-signature" aria-label="Double Check, Technology">
+        <strong>DOUBLE CHECK</strong>
         <i />
-        <span>we drive innovation<br />for people</span>
+        <span>Double Check<br />Technology</span>
       </div>
     </section>
-  );
-}
-
-function TrustItem({ icon, title, description }: { icon: ReactNode; title: string; description: string }) {
-  return (
-    <button type="button" className="nexo-trust-item">
-      <span className="nexo-trust-icon">{icon}</span>
-      <span><strong>{title}</strong><small>{description}</small></span>
-      <span className="nexo-chevron" aria-hidden="true">›</span>
-    </button>
   );
 }
 
@@ -163,16 +137,16 @@ export function LoginPage() {
       <HeroPanel />
 
       <section className="nexo-login-content">
-        <div className="nexo-mobile-brand"><RenaultDiamond size={35} /><strong>Nexo</strong></div>
+        <div className="nexo-mobile-brand"><NexusMark size={35} /><strong>Nexo</strong></div>
 
         <form className="nexo-login-card" onSubmit={handleSubmit}>
           <header className="nexo-card-heading">
             <h2>Entrar no Nexo</h2>
-            <p>Acesse com sua conta corporativa Renault.</p>
+            <p>Acesse com sua conta corporativa Double Check.</p>
           </header>
 
           <button type="button" className="nexo-corporate-button" onClick={() => document.getElementById('corporate-email')?.focus()}>
-            <RenaultDiamond size={24} />
+            <NexusMark size={24} />
             Entrar com conta corporativa
           </button>
 
@@ -182,7 +156,7 @@ export function LoginPage() {
 
           <label className="nexo-field">
             <span>E-mail corporativo</span>
-            <input id="corporate-email" type="email" autoComplete="username" placeholder="seu.nome@renault.com" value={email} onChange={(event) => setEmail(event.target.value)} aria-invalid={mutation.isError} />
+            <input id="corporate-email" type="email" autoComplete="username" placeholder="seu.nome@doublecheck.com.br" value={email} onChange={(event) => setEmail(event.target.value)} aria-invalid={mutation.isError} />
           </label>
 
           <label className="nexo-field">
@@ -201,19 +175,6 @@ export function LoginPage() {
           <button className="nexo-submit" type="submit" disabled={mutation.isPending || !email.trim() || !senha}>
             {mutation.isPending ? 'Entrando…' : 'Entrar'}
           </button>
-
-          <div className="nexo-trust-list">
-            <TrustItem
-              title="Protegido por Okta Verify"
-              description="Verifique sua identidade com o app Okta Verify."
-              icon={<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" /><path d="m9 12 2 2 4-4" /></svg>}
-            />
-            <TrustItem
-              title="Precisa de ajuda? Use o Copilot corporativo"
-              description="Obtenha suporte e respostas rápidas dos nossos agentes."
-              icon={<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3a4 4 0 0 0-4 4v2a3 3 0 0 0 0 6v2a4 4 0 0 0 4 4M16 3a4 4 0 0 1 4 4v2a3 3 0 0 1 0 6v2a4 4 0 0 1-4 4M8 3v18M16 3v18M8 8h3M13 16h3" /></svg>}
-            />
-          </div>
         </form>
 
         <ServicesPanel />
@@ -221,7 +182,7 @@ export function LoginPage() {
 
       <footer className="nexo-login-footer">
         <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></svg>
-        Uso interno Renault
+        Uso interno Double Check
       </footer>
     </main>
   );

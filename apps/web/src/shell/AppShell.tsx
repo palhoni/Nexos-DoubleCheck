@@ -36,7 +36,7 @@ export function AppShell() {
   }
 
   return (
-    <div className="dbc-layout-bg renault-app-shell" style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+    <div className="dbc-layout-bg dbc-app-shell" style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       <Sidebar onLogout={handleLogout} />
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
         <Topbar breadcrumb={labelFor(location.pathname)} />

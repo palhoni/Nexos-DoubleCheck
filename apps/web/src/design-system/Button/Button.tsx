@@ -61,27 +61,27 @@ export function Button({
   const dBorder = dark ? 'var(--color-border)' : '#d9d9d9';
   const variants: Record<ButtonVariant, { rest: React.CSSProperties; hover: React.CSSProperties }> = {
     primary: {
-      rest: { background: '#ffcc00', color: '#111', border: '1px solid #ffcc00' },
-      hover: { background: '#f5c400', color: '#050505', border: '1px solid #e8b900' },
+      rest: { background: '#3b82c4', color: '#fff', border: '1px solid #3b82c4' },
+      hover: { background: '#306ba1', color: '#fff', border: '1px solid #26537d' },
     },
     default: {
       rest: { background: dark ? 'var(--color-bg-subtle)' : '#fff', color: text, border: `1px solid ${dBorder}` },
-      hover: { background: dark ? 'var(--color-bg-subtle)' : '#fff', color: '#111', border: '1px solid #d6aa00' },
+      hover: { background: dark ? 'var(--color-bg-subtle)' : '#fff', color: '#111', border: '1px solid #3b82c4' },
     },
     secondary: {
       rest: { background: dark ? 'var(--color-bg-subtle)' : '#fff', color: text, border: `1px solid ${dBorder}` },
-      hover: { background: dark ? 'var(--color-bg-subtle)' : '#fff', color: '#111', border: '1px solid #d6aa00' },
+      hover: { background: dark ? 'var(--color-bg-subtle)' : '#fff', color: '#111', border: '1px solid #3b82c4' },
     },
     dashed: {
-      rest: { background: 'transparent', color: '#755d00', border: '1px dashed #d6aa00' },
-      hover: { background: dark ? 'rgba(255,204,0,.12)' : 'rgba(255,204,0,.10)', color: '#111', border: '1px dashed #b78f00' },
+      rest: { background: 'transparent', color: '#26537d', border: '1px dashed #3b82c4' },
+      hover: { background: dark ? 'rgba(59,130,196,.12)' : 'rgba(59,130,196,.10)', color: '#111', border: '1px dashed #3b82c4' },
     },
     ghost: {
       rest: { background: 'transparent', color: text, border: '1px solid transparent' },
       hover: { background: dark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.04)', color: text, border: '1px solid transparent' },
     },
     link: {
-      rest: { background: 'transparent', color: '#755d00', border: 'none' },
+      rest: { background: 'transparent', color: '#26537d', border: 'none' },
       hover: { background: 'transparent', color: '#111', border: 'none' },
     },
     danger: {

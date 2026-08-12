@@ -221,7 +221,7 @@ export function AgentsOrchestrationPage() {
         {activeTab !== 'plano' && <div className="agents-tab-placeholder"><Icon name="info" size={22} /><strong>{activeTab === 'precondicoes' ? 'Pré-condições do projeto' : activeTab === 'gates' ? 'Gates de aprovação' : 'Configurações de execução'}</strong><span>Esta área está preparada visualmente e será detalhada quando você definir as próximas regras.</span></div>}
       </section>}
 
-      <footer className="agents-page-footer">© 2026 Renault Group. Uso interno.</footer>
+      <footer className="agents-page-footer">© 2026 Double Check. Uso interno.</footer>
     </div>
   );
 }

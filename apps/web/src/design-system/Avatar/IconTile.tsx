@@ -19,7 +19,7 @@ export interface IconTileProps {
 export function IconTile({ size = 'md', shape = 'square', tone = 'neutral', children, style }: IconTileProps) {
   const dark = useDark();
   const px = SIZE_PX[size];
-  const resolved = typeof tone === 'string' ? { color: tone === 'primary' ? '#111' : '#4a4a4a', bg: dark ? 'var(--color-fill-secondary)' : tone === 'primary' ? '#fff4bf' : '#f1f1f1' } : tone;
+  const resolved = typeof tone === 'string' ? { color: tone === 'primary' ? 'var(--color-primary)' : '#4a4a4a', bg: dark ? 'var(--color-fill-secondary)' : tone === 'primary' ? 'var(--dbc-blue-1)' : '#f1f1f1' } : tone;
   return (
     <div
       style={{

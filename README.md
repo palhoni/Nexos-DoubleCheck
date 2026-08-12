@@ -1,6 +1,6 @@
-# Nexo Renault
+# Nexo Double Check
 
-Plataforma interna Renault para organizar conhecimento de projetos e executar Agents de qualidade sobre requisitos funcionais.
+Plataforma interna Double Check para organizar conhecimento de projetos e executar Agents de qualidade sobre requisitos funcionais.
 
 Este repositório é um monorepo npm com:
 
@@ -33,14 +33,14 @@ psql --version
 ## 2. Clonar e instalar as dependências
 
 ```bash
-git clone https://github.com/palhoni/Nexos-Renault.git
-cd Nexos-Renault
+git clone https://github.com/palhoni/Nexos-DoubleCheck.git
+cd Nexos-DoubleCheck
 npm install
 ```
 
 O `npm install` executado na raiz instala as dependências da API e do frontend por meio dos workspaces.
 
-> Se a pasta local possuir espaços no nome, coloque o caminho entre aspas. Exemplo no Windows: `cd "C:\Renault\NEXUS 2.0"`.
+> Se a pasta local possuir espaços no nome, coloque o caminho entre aspas. Exemplo no Windows: `cd "C:\Doublecheck\NEXUS 2.0"`.
 
 ## 3. Instalar e preparar o PostgreSQL
 

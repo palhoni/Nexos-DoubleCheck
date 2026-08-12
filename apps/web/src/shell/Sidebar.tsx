@@ -60,7 +60,7 @@ function ToggleSwitch({ on, onChange }: { on: boolean; onChange: () => void }) {
   return (
     <button
       type="button"
-      className={`renault-sidebar-toggle${on ? ' is-on' : ''}`}
+      className={`dbc-sidebar-toggle${on ? ' is-on' : ''}`}
       onClick={(event) => {
         event.stopPropagation();
         onChange();
@@ -185,7 +185,7 @@ export function Sidebar({ onLogout }: SidebarProps) {
       <button
         type="button"
         key={item.path}
-        className={`dbc-nav-item renault-nav-item${nested ? ' renault-nav-item--nested' : ''}${active ? ' dbc-nav-item-active' : ''}`}
+        className={`dbc-nav-item dbc-side-nav-item${nested ? ' dbc-side-nav-item--nested' : ''}${active ? ' dbc-nav-item-active' : ''}`}
         title={collapsed ? item.label : undefined}
         onClick={() => navigate(item.path)}
       >
@@ -206,14 +206,14 @@ export function Sidebar({ onLogout }: SidebarProps) {
       <button
         type="button"
         key={item.path}
-        className={`dbc-nav-item renault-nav-item${active ? ' dbc-nav-item-active' : ''}${item.disabled ? ' is-disabled' : ''}`}
+        className={`dbc-nav-item dbc-side-nav-item${active ? ' dbc-nav-item-active' : ''}${item.disabled ? ' is-disabled' : ''}`}
         title={item.disabled ? `${item.label} — Em breve` : collapsed ? item.label : undefined}
         onClick={() => !item.disabled && navigate(item.path)}
         disabled={item.disabled}
         aria-disabled={item.disabled || undefined}
       >
         <Icon name={item.icon} size={18} width={1.7} />
-        {!collapsed && <><span>{item.label}</span>{item.disabled && <small className="renault-nav-coming-soon">Em breve</small>}</>}
+        {!collapsed && <><span>{item.label}</span>{item.disabled && <small className="dbc-nav-coming-soon">Em breve</small>}</>}
       </button>
     );
   }
@@ -222,10 +222,10 @@ export function Sidebar({ onLogout }: SidebarProps) {
     const item = SETUP_NAV.find((entry) => entry.path === '/projetos')!;
     const active = isActive(item);
     return (
-      <div className={`renault-project-nav${selectedProjectId ? ' has-project' : ''}`} key={item.path}>
+      <div className={`dbc-project-nav${selectedProjectId ? ' has-project' : ''}`} key={item.path}>
         <button
           type="button"
-          className={`dbc-nav-item renault-nav-item renault-nav-item--nested${active ? ' dbc-nav-item-active' : ''}`}
+          className={`dbc-nav-item dbc-side-nav-item dbc-side-nav-item--nested${active ? ' dbc-nav-item-active' : ''}`}
           onClick={() => selectedProjectId ? setProjectOpen((value) => !value) : navigate('/projetos')}
           aria-expanded={selectedProjectId ? projectOpen : undefined}
         >
@@ -235,12 +235,12 @@ export function Sidebar({ onLogout }: SidebarProps) {
         </button>
 
         {selectedProjectId && projectOpen && (
-          <div className="renault-project-nav__children" aria-label="Áreas do projeto selecionado">
+          <div className="dbc-project-nav__children" aria-label="Áreas do projeto selecionado">
             {PROJECT_NAV.map((projectItem) => (
               <button
                 type="button"
                 key={projectItem.key}
-                className={`dbc-nav-item renault-nav-item renault-nav-item--project${activeProjectSection === projectItem.key ? ' dbc-nav-item-active' : ''}`}
+                className={`dbc-nav-item dbc-side-nav-item dbc-side-nav-item--project${activeProjectSection === projectItem.key ? ' dbc-nav-item-active' : ''}`}
                 onClick={() => navigate(projectItem.path(selectedProjectId))}
               >
                 <Icon name={projectItem.icon} size={15} width={1.7} />
@@ -255,12 +255,12 @@ export function Sidebar({ onLogout }: SidebarProps) {
 
   return (
     <aside className={`dbc-sidebar${collapsed ? ' is-collapsed' : ''}`}>
-      <div className="renault-sidebar-scroll">
-        <div className="renault-sidebar-head">
+      <div className="dbc-sidebar-scroll">
+        <div className="dbc-sidebar-head">
           {!collapsed && (
-            <div className="renault-sidebar-logo">
+            <div className="dbc-sidebar-logo">
               <NexusMark size={31} />
-              <span className="renault-sidebar-brand"><strong>Nexo</strong><small>Powered by Renault</small></span>
+              <span className="dbc-sidebar-brand"><strong>Nexo</strong><small>Powered by Double Check</small></span>
             </div>
           )}
           <button
@@ -274,17 +274,17 @@ export function Sidebar({ onLogout }: SidebarProps) {
           </button>
         </div>
 
-        {collapsed && <div className="renault-sidebar-collapsed-mark"><NexusMark size={37} /></div>}
+        {collapsed && <div className="dbc-sidebar-collapsed-mark"><NexusMark size={37} /></div>}
 
-        <nav className="renault-sidebar-nav" aria-label="Navegação principal">
+        <nav className="dbc-sidebar-nav" aria-label="Navegação principal">
           {isAgentUser ? (
             <>
               {agentWorkspaceButton({ path: '/agents', label: 'Orquestração', icon: 'network' })}
               {agentWorkspaceButton({ path: '/agents/analises', label: 'Análises de US', icon: 'clipboardCheck' })}
               {agentWorkspaceButton({ path: '/agents/planos-teste', label: 'Planos de Teste', icon: 'chart' })}
-              {!collapsed && <div className="renault-sidebar-section-label">Ciclo de trabalho</div>}
+              {!collapsed && <div className="dbc-side-section-label">Ciclo de trabalho</div>}
               {AGENT_WORKSPACE_NAV.map(agentWorkspaceButton)}
-              {!collapsed && <div className="renault-sidebar-section-label">Projetos recentes</div>}
+              {!collapsed && <div className="dbc-side-section-label">Projetos recentes</div>}
               {!collapsed && (
                 <div className="agents-sidebar-projects">
                   {agentProjects.map((project, index) => (
@@ -300,10 +300,10 @@ export function Sidebar({ onLogout }: SidebarProps) {
             <>
               {navButton({ path: '/', label: 'Início', icon: 'home' })}
 
-              <div className={`renault-nav-group${setupRouteActive ? ' is-active' : ''}`}>
+              <div className={`dbc-nav-group${setupRouteActive ? ' is-active' : ''}`}>
                 <button
                   type="button"
-                  className="dbc-nav-item renault-nav-item renault-nav-group__trigger"
+                  className="dbc-nav-item dbc-side-nav-item dbc-nav-group__trigger"
                   onClick={() => collapsed ? navigate('/projetos') : setSetupOpen((value) => !value)}
                   title={collapsed ? 'Setup' : undefined}
                   aria-expanded={!collapsed ? setupOpen : undefined}
@@ -311,26 +311,26 @@ export function Sidebar({ onLogout }: SidebarProps) {
                   <Icon name="folder" size={18} width={1.7} />
                   {!collapsed && <><span>Setup</span><SetupChevron open={setupOpen} /></>}
                 </button>
-                {!collapsed && setupOpen && <div className="renault-nav-group__children">{SETUP_NAV.map((item) => item.path === '/projetos' ? projectNavGroup() : navButton(item, true))}</div>}
+                {!collapsed && setupOpen && <div className="dbc-nav-group__children">{SETUP_NAV.map((item) => item.path === '/projetos' ? projectNavGroup() : navButton(item, true))}</div>}
               </div>
 
-              {!collapsed && <div className="renault-sidebar-section-label">Operacional</div>}
+              {!collapsed && <div className="dbc-side-section-label">Operacional</div>}
               {OPERACIONAL_NAV.map((item) => navButton(item))}
             </>
           )}
         </nav>
 
-        <div className="renault-sidebar-spacer" />
+        <div className="dbc-sidebar-spacer" />
 
         {!collapsed && (
-          <div className="renault-governance-card" role="status">
-            <span className="renault-governance-card__icon"><Icon name="clipboardCheck" size={17} width={1.7} /></span>
+          <div className="dbc-governance-card" role="status">
+            <span className="dbc-governance-card__icon"><Icon name="clipboardCheck" size={17} width={1.7} /></span>
             <span><strong>Governança e segurança</strong><small>{isAgentUser ? 'Contexto isolado por projeto' : 'Tudo em conformidade'} <i /></small></span>
           </div>
         )}
 
-        <div className="renault-sidebar-preferences">
-          <button type="button" className="dbc-nav-item renault-nav-item" onClick={() => setDark((value) => !value)} title={collapsed ? 'Modo escuro' : undefined}>
+        <div className="dbc-sidebar-preferences">
+          <button type="button" className="dbc-nav-item dbc-side-nav-item" onClick={() => setDark((value) => !value)} title={collapsed ? 'Modo escuro' : undefined}>
             <Icon name="info" size={17} width={1.7} />
             {!collapsed && <><span>Modo escuro</span><ToggleSwitch on={dark} onChange={() => setDark((value) => !value)} /></>}
           </button>
@@ -363,8 +363,8 @@ export function Sidebar({ onLogout }: SidebarProps) {
         <Alert type="warning" title="Você será desconectado">
           Ao sair, sua sessão atual será encerrada e você precisará entrar novamente com suas credenciais para acessar a plataforma.
         </Alert>
-        <label className={`renault-logout-ack${logoutAck ? ' is-checked' : ''}`} onClick={() => setLogoutAck((value) => !value)}>
-          <span className="renault-logout-ack__check">
+        <label className={`dbc-logout-ack${logoutAck ? ' is-checked' : ''}`} onClick={() => setLogoutAck((value) => !value)}>
+          <span className="dbc-logout-ack__check">
             {logoutAck && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
           </span>
           <span className="dbc-text-2">Estou ciente e confirmo que desejo <strong className="dbc-text">encerrar a sessão</strong> agora.</span>

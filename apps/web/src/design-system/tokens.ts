@@ -1,7 +1,7 @@
 export const tokens = {
   color: {
-    primary: '#ffcc00',
-    primaryHover: '#f5c400',
+    primary: '#3b82c4',
+    primaryHover: '#306ba1',
     primaryDeep: '#141414',
     success: '#52c41a',
     successText: '#389e0d',
